@@ -2,15 +2,22 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>MoneyLens · 돈 벌 생각</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, orderBy, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged, updateProfile
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, getDocs, deleteDoc, doc,
+  updateDoc, query, orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBujxf8knm_dolV2cDD_nuxMI9hucXD5ys",
@@ -24,46 +31,182 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
 let currentUser = null;
 let userProfile = null;
 let currentAnalysis = null;
 let currentPage = 'lens';
 let radarChart = null;
+let onboardingStep = 0;
 
-// ── AUTH ──────────────────────────────────────────────
+// ─── AUTH STATE ────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   if (user) {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
+    showScreen('app');
     await loadUserProfile();
     renderPage('lens');
   } else {
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
+    showScreen('onboarding');
   }
 });
 
-window.googleLogin = async () => {
-  try {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-  } catch(e) { showToast('로그인 실패: ' + e.message, 'error'); }
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+  document.getElementById(name + 'Screen').style.display = name === 'app' ? 'flex' : 'block';
+}
+
+// ─── ONBOARDING ────────────────────────────────────────
+const slides = [
+  {
+    emoji: '🔍',
+    title: '상품을 보는 눈이\n달라집니다',
+    desc: '편의점 삼각김밥, 스타벅스 커피, 배달앱…\n일상의 모든 것이 사업 아이디어가 됩니다'
+  },
+  {
+    emoji: '🏭',
+    title: '원가부터 유통까지\nAI가 해부합니다',
+    desc: '생산 구조, 유통 마진, 시장 규모를\n한눈에 파악하세요'
+  },
+  {
+    emoji: '💰',
+    title: '기회를 발견하고\n사업으로 만드세요',
+    desc: '실현가능성 평가부터 사업 초안까지\n돈 버는 생각을 실행으로'
+  }
+];
+
+window.nextOnboarding = function() {
+  if (onboardingStep < slides.length - 1) {
+    onboardingStep++;
+    renderOnboardingSlide();
+  } else {
+    showAuthPanel('login');
+  }
 };
 
-window.logout = async () => {
+window.skipOnboarding = function() {
+  showAuthPanel('login');
+};
+
+function renderOnboardingSlide() {
+  const s = slides[onboardingStep];
+  document.getElementById('obEmoji').textContent = s.emoji;
+  document.getElementById('obTitle').innerHTML = s.title.replace('\n', '<br>');
+  document.getElementById('obDesc').innerHTML = s.desc.replace('\n', '<br>');
+  document.querySelectorAll('.ob-dot').forEach((d, i) => {
+    d.classList.toggle('active', i === onboardingStep);
+  });
+  const btn = document.getElementById('obNextBtn');
+  btn.textContent = onboardingStep < slides.length - 1 ? '다음' : '시작하기';
+  const skip = document.getElementById('obSkip');
+  skip.style.visibility = onboardingStep < slides.length - 1 ? 'visible' : 'hidden';
+}
+
+function showAuthPanel(mode) {
+  document.getElementById('onboardingSlide').style.display = 'none';
+  document.getElementById('authPanel').style.display = 'block';
+  if (mode === 'login') renderLogin();
+  else renderSignup();
+}
+
+function renderLogin() {
+  document.getElementById('authPanel').innerHTML = `
+    <div class="auth-top">
+      <div class="auth-logo">🔍</div>
+      <div class="auth-brand">MoneyLens</div>
+      <div class="auth-sub">돈 벌 생각</div>
+    </div>
+    <div class="auth-form">
+      <div class="form-group">
+        <label class="form-label">이메일</label>
+        <input type="email" id="authEmail" class="toss-input" placeholder="이메일을 입력하세요" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label">비밀번호</label>
+        <input type="password" id="authPw" class="toss-input" placeholder="비밀번호를 입력하세요" autocomplete="current-password">
+      </div>
+      <div id="authError" class="auth-error" style="display:none"></div>
+      <button class="toss-btn primary" onclick="doLogin()">로그인</button>
+      <button class="toss-btn ghost" onclick="showAuthPanel('signup')">처음 오셨나요? 회원가입</button>
+    </div>
+  `;
+}
+
+function renderSignup() {
+  document.getElementById('authPanel').innerHTML = `
+    <div class="auth-top">
+      <button class="back-btn" onclick="showAuthPanel('login')">← 로그인으로</button>
+      <div class="auth-logo" style="margin-top:8px">🔍</div>
+      <div class="auth-brand">MoneyLens</div>
+      <div class="auth-sub">계정을 만들어 시작하세요</div>
+    </div>
+    <div class="auth-form">
+      <div class="form-group">
+        <label class="form-label">이름</label>
+        <input type="text" id="authName" class="toss-input" placeholder="이름을 입력하세요">
+      </div>
+      <div class="form-group">
+        <label class="form-label">이메일</label>
+        <input type="email" id="authEmail" class="toss-input" placeholder="이메일을 입력하세요" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label">비밀번호</label>
+        <input type="password" id="authPw" class="toss-input" placeholder="6자 이상 입력하세요" autocomplete="new-password">
+      </div>
+      <div id="authError" class="auth-error" style="display:none"></div>
+      <button class="toss-btn primary" onclick="doSignup()">회원가입</button>
+    </div>
+  `;
+}
+
+window.doLogin = async function() {
+  const email = document.getElementById('authEmail')?.value?.trim();
+  const pw = document.getElementById('authPw')?.value;
+  const errEl = document.getElementById('authError');
+  if (!email || !pw) { showAuthError('이메일과 비밀번호를 입력해주세요'); return; }
+  try {
+    await signInWithEmailAndPassword(auth, email, pw);
+  } catch(e) {
+    const msg = e.code === 'auth/invalid-credential' ? '이메일 또는 비밀번호가 올바르지 않습니다'
+      : e.code === 'auth/user-not-found' ? '등록되지 않은 이메일입니다'
+      : e.code === 'auth/wrong-password' ? '비밀번호가 올바르지 않습니다'
+      : '로그인 실패: ' + e.message;
+    showAuthError(msg);
+  }
+};
+
+window.doSignup = async function() {
+  const name = document.getElementById('authName')?.value?.trim();
+  const email = document.getElementById('authEmail')?.value?.trim();
+  const pw = document.getElementById('authPw')?.value;
+  if (!name || !email || !pw) { showAuthError('모든 항목을 입력해주세요'); return; }
+  if (pw.length < 6) { showAuthError('비밀번호는 6자 이상이어야 합니다'); return; }
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, pw);
+    await updateProfile(cred.user, { displayName: name });
+  } catch(e) {
+    const msg = e.code === 'auth/email-already-in-use' ? '이미 사용 중인 이메일입니다'
+      : e.code === 'auth/invalid-email' ? '이메일 형식이 올바르지 않습니다'
+      : '회원가입 실패: ' + e.message;
+    showAuthError(msg);
+  }
+};
+
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+window.logout = async function() {
+  if (!confirm('로그아웃 하시겠습니까?')) return;
   await signOut(auth);
 };
 
-// ── PROFILE ──────────────────────────────────────────
+// ─── PROFILE ──────────────────────────────────────────
 async function loadUserProfile() {
   try {
-    const snap = await getDocs(query(collection(db, `users/${currentUser.uid}/profile`)));
-    if (!snap.empty) {
-      userProfile = snap.docs[0].data();
-    } else {
-      userProfile = null;
-    }
+    const snap = await getDocs(collection(db, `users/${currentUser.uid}/profile`));
+    userProfile = snap.empty ? null : snap.docs[0].data();
   } catch(e) { userProfile = null; }
 }
 
@@ -76,145 +219,187 @@ async function saveProfile(data) {
       await addDoc(collection(db, `users/${currentUser.uid}/profile`), data);
     }
     userProfile = data;
-    showToast('프로필이 저장되었습니다', 'success');
-  } catch(e) { showToast('저장 실패', 'error'); }
+    showToast('프로필이 저장되었습니다');
+  } catch(e) { showToast('저장 실패: ' + e.message, 'error'); }
 }
 
-// ── NAVIGATION ────────────────────────────────────────
+// ─── NAVIGATION ───────────────────────────────────────
 window.renderPage = function(page) {
   currentPage = page;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`[data-tab="${page}"]`)?.classList.add('active');
-  const main = document.getElementById('mainContent');
+  document.querySelectorAll('.top-tab').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.top-tab[data-tab="${page}"]`)?.classList.add('active');
+  renderPageContent(page);
+};
 
+function renderPageContent(page) {
+  const main = document.getElementById('mainContent');
+  main.scrollTop = 0;
   if (page === 'lens') renderLens(main);
   else if (page === 'ideas') renderIdeas(main);
   else if (page === 'eval') renderEval(main);
   else if (page === 'cases') renderCases(main);
   else if (page === 'settings') renderSettings(main);
-};
+}
 
-// ── LENS PAGE ─────────────────────────────────────────
+// ─── TOP NAV ──────────────────────────────────────────
+function buildTopNav() {
+  return `
+  <header class="top-nav">
+    <div class="top-nav-brand">
+      <span class="brand-icon">🔍</span>
+      <span class="brand-name">MoneyLens</span>
+    </div>
+    <nav class="top-tabs">
+      <button class="top-tab active" data-tab="lens" onclick="renderPage('lens')">렌즈</button>
+      <button class="top-tab" data-tab="ideas" onclick="renderPage('ideas')">아이디어함</button>
+      <button class="top-tab" data-tab="eval" onclick="renderPage('eval')">평가실</button>
+      <button class="top-tab" data-tab="cases" onclick="renderPage('cases')">사례</button>
+      <button class="top-tab" data-tab="settings" onclick="renderPage('settings')">설정</button>
+    </nav>
+  </header>`;
+}
+
+// ─── LENS PAGE ────────────────────────────────────────
 function renderLens(main) {
   main.innerHTML = `
-    <div class="page-header">
-      <div class="logo-mark">🔍</div>
-      <h1 class="page-title">돈 벌 생각</h1>
-      <p class="page-sub">상품을 보는 눈이 달라지면 돈이 보인다</p>
+    <div class="page-hero">
+      <div class="hero-eyebrow">돈 벌 생각</div>
+      <h1 class="hero-title">상품을 보는 눈이<br>달라지면 돈이 보입니다</h1>
     </div>
 
-    <div class="input-section">
-      <div class="input-tabs">
-        <button class="input-tab active" onclick="switchInputTab('text',this)">텍스트</button>
-        <button class="input-tab" onclick="switchInputTab('image',this)">이미지</button>
-        <button class="input-tab" onclick="switchInputTab('url',this)">URL</button>
+    <div class="toss-card">
+      <div class="input-mode-tabs">
+        <button class="mode-tab active" onclick="switchMode('text',this)">텍스트</button>
+        <button class="mode-tab" onclick="switchMode('image',this)">이미지</button>
+        <button class="mode-tab" onclick="switchMode('url',this)">URL</button>
       </div>
 
-      <div id="inputText" class="input-panel active">
-        <textarea id="textInput" class="main-input" placeholder="상품명이나 서비스를 입력하세요&#10;예) 편의점 삼각김밥, 스타벅스 아메리카노, 배달앱..."></textarea>
+      <div id="modeText" class="mode-panel">
+        <textarea id="textInput" class="toss-textarea" placeholder="분석할 상품이나 서비스를 입력하세요&#10;예) 편의점 삼각김밥, 스타벅스 아메리카노, 쿠팡 로켓배송..."></textarea>
       </div>
-      <div id="inputImage" class="input-panel" style="display:none">
-        <div class="image-drop" onclick="document.getElementById('imgFile').click()">
-          <div id="imgPreview" class="img-preview-wrap">
-            <span class="drop-icon">📷</span>
-            <p>사진을 탭하여 업로드</p>
+      <div id="modeImage" class="mode-panel" style="display:none">
+        <div class="image-upload-area" onclick="document.getElementById('imgFile').click()">
+          <div id="imgPreviewWrap">
+            <div class="upload-icon">📷</div>
+            <div class="upload-text">사진을 탭해서 업로드</div>
+            <div class="upload-sub">상품 사진, 영수증, 패키지 등</div>
           </div>
         </div>
-        <input type="file" id="imgFile" accept="image/*" style="display:none" onchange="previewImage(this)">
+        <input type="file" id="imgFile" accept="image/*" style="display:none" onchange="previewImg(this)">
       </div>
-      <div id="inputUrl" class="input-panel" style="display:none">
-        <input type="text" id="urlInput" class="main-input url-input" placeholder="쿠팡, 네이버 쇼핑 등 URL 붙여넣기">
+      <div id="modeUrl" class="mode-panel" style="display:none">
+        <input type="url" id="urlInput" class="toss-input" placeholder="쿠팡, 네이버쇼핑, 배민 등 URL 붙여넣기" style="margin:0">
       </div>
 
-      <button class="analyze-btn" onclick="startAnalysis()">
-        <span class="btn-icon">🔬</span> 분석 시작
+      <button class="toss-btn primary full-width mt-16" onclick="startAnalysis()">
+        분석 시작하기
       </button>
     </div>
 
-    <div id="analysisResult" style="display:none"></div>
+    <div class="section-label">이렇게 활용해보세요</div>
+    <div class="hint-grid">
+      <div class="hint-card" onclick="fillExample('편의점 삼각김밥')">
+        <div class="hint-emoji">🍙</div>
+        <div class="hint-text">편의점 삼각김밥</div>
+      </div>
+      <div class="hint-card" onclick="fillExample('스타벅스 아메리카노')">
+        <div class="hint-emoji">☕</div>
+        <div class="hint-text">스타벅스 아메리카노</div>
+      </div>
+      <div class="hint-card" onclick="fillExample('배달앱 서비스')">
+        <div class="hint-emoji">📱</div>
+        <div class="hint-text">배달앱 서비스</div>
+      </div>
+      <div class="hint-card" onclick="fillExample('요가매트')">
+        <div class="hint-emoji">🧘</div>
+        <div class="hint-text">요가매트</div>
+      </div>
+    </div>
+
+    <div id="analysisResult"></div>
   `;
 }
 
-window.switchInputTab = function(type, btn) {
-  document.querySelectorAll('.input-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  document.querySelectorAll('.input-panel').forEach(p => p.style.display = 'none');
-  document.getElementById('input' + type.charAt(0).toUpperCase() + type.slice(1)).style.display = 'block';
+window.fillExample = function(text) {
+  const el = document.getElementById('textInput');
+  if (el) { el.value = text; el.focus(); }
+  // Ensure text mode is active
+  document.querySelectorAll('.mode-tab').forEach((b,i) => b.classList.toggle('active', i===0));
+  document.querySelectorAll('.mode-panel').forEach((p,i) => p.style.display = i===0 ? 'block' : 'none');
 };
 
-window.previewImage = function(input) {
+window.switchMode = function(type, btn) {
+  document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.mode-panel').forEach(p => p.style.display = 'none');
+  document.getElementById('mode' + type.charAt(0).toUpperCase() + type.slice(1)).style.display = 'block';
+};
+
+window.previewImg = function(input) {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    document.getElementById('imgPreview').innerHTML = `<img src="${e.target.result}" style="max-width:100%;max-height:200px;border-radius:8px;">`;
+    document.getElementById('imgPreviewWrap').innerHTML =
+      `<img src="${e.target.result}" style="max-width:100%;max-height:180px;border-radius:8px;object-fit:contain">`;
   };
   reader.readAsDataURL(file);
 };
 
 window.startAnalysis = async function() {
-  const activeTab = document.querySelector('.input-tab.active')?.textContent;
-  let inputContent = '';
-  let inputType = 'text';
-  let imageBase64 = null;
+  const activeMode = document.querySelector('.mode-tab.active')?.textContent;
+  let inputContent = '', inputType = 'text', imageBase64 = null;
 
-  if (activeTab === '텍스트') {
+  if (activeMode === '텍스트') {
     inputContent = document.getElementById('textInput')?.value?.trim();
     inputType = 'text';
-  } else if (activeTab === '이미지') {
+  } else if (activeMode === '이미지') {
     const file = document.getElementById('imgFile')?.files[0];
     if (!file) { showToast('이미지를 선택해주세요', 'error'); return; }
     inputContent = file.name;
     inputType = 'image';
     imageBase64 = await fileToBase64(file);
-  } else if (activeTab === 'URL') {
+  } else {
     inputContent = document.getElementById('urlInput')?.value?.trim();
     inputType = 'url';
   }
-
   if (!inputContent) { showToast('분석할 내용을 입력해주세요', 'error'); return; }
-  if (!currentUser) { showToast('로그인이 필요합니다', 'error'); return; }
 
   const resultDiv = document.getElementById('analysisResult');
-  resultDiv.style.display = 'block';
-  resultDiv.innerHTML = `<div class="analysis-loading">
-    <div class="loading-steps">
-      <div class="loading-step" id="ls1">⏳ 상품 개요 파악 중...</div>
-      <div class="loading-step" id="ls2">⏳ 생산 구조 분석 중...</div>
-      <div class="loading-step" id="ls3">⏳ 유통 경로 추적 중...</div>
-      <div class="loading-step" id="ls4">⏳ 시장 규모 추정 중...</div>
-      <div class="loading-step" id="ls5">⏳ 기회 포인트 탐색 중...</div>
-      <div class="loading-step" id="ls6">⏳ 아이디어 생성 중...</div>
-    </div>
-  </div>`;
+  resultDiv.innerHTML = `
+    <div class="toss-card mt-16">
+      <div class="loading-header">
+        <div class="loading-spinner"></div>
+        <div class="loading-title">AI가 분석하고 있습니다</div>
+      </div>
+      <div class="loading-steps">
+        ${['상품 개요 파악','생산 구조 분석','유통 경로 추적','시장 규모 추정','기회 포인트 탐색','아이디어 생성'].map((s,i) =>
+          `<div class="l-step" id="ls${i}">${s}</div>`
+        ).join('')}
+      </div>
+    </div>`;
 
-  const steps = [1,2,3,4,5,6];
-  steps.forEach((s, i) => {
+  [0,1,2,3,4,5].forEach(i => {
     setTimeout(() => {
-      const el = document.getElementById(`ls${s}`);
-      if (el) el.innerHTML = el.innerHTML.replace('⏳','✅').replace(' 중...', ' 완료');
-    }, i * 800);
+      const el = document.getElementById(`ls${i}`);
+      if (el) el.classList.add('done');
+    }, (i + 1) * 700);
   });
 
   try {
-    const profileContext = userProfile ? `
-사용자 프로필:
-- 보유 역량: ${userProfile.skills || '미입력'}
-- 가용 자본: ${userProfile.capital || '미입력'}
-- 관심 산업: ${userProfile.industry || '미입력'}
-- 가용 시간: ${userProfile.time || '미입력'}
-위 프로필을 기반으로 "나의 적합도" 분석 시 개인화된 평가를 해주세요.` : '';
+    const profileCtx = userProfile
+      ? `\n사용자 프로필: 역량(${userProfile.skills||'미입력'}), 자본(${userProfile.capital||'미입력'}), 관심산업(${userProfile.industry||'미입력'}), 가용시간(${userProfile.time||'미입력'})\n적합도 분석 시 이 프로필을 반영해주세요.` : '';
 
     const messages = imageBase64
-      ? [{ role: "user", content: [
-          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: imageBase64 }},
-          { type: "text", text: `이 상품 이미지를 분석해주세요.${profileContext}` }
+      ? [{ role:"user", content:[
+          { type:"image", source:{ type:"base64", media_type:"image/jpeg", data:imageBase64 }},
+          { type:"text", text:`이 상품 이미지를 분석해주세요.${profileCtx}` }
         ]}]
-      : [{ role: "user", content: `분석 대상: ${inputType === 'url' ? 'URL: ' : ''}${inputContent}\n\n${profileContext}` }];
+      : [{ role:"user", content:`분석 대상: ${inputType==='url'?'URL: ':''}${inputContent}${profileCtx}` }];
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 2000,
@@ -222,98 +407,97 @@ window.startAnalysis = async function() {
 사용자가 입력한 상품/서비스를 분석하여 돈이 되는 기회를 발견하도록 도와줍니다.
 모든 분석은 한국어로, 구체적 수치와 함께 제공하세요.
 추정값은 반드시 신뢰도를 표기하세요: ✅확인됨 / ⚠️추정 / ❓불확실
-응답은 반드시 JSON만 출력하세요. 마크다운 코드블록 없이 순수 JSON만.
+응답은 반드시 순수 JSON만 출력하세요. 마크다운 없이.
 
+응답 형식:
 {
   "productName": "상품명",
-  "overview": "상품 개요 (무엇인가, 왜 만들어졌나) - 2~3문장",
+  "overview": "상품 개요 2~3문장",
   "production": "생산 구조 및 원가 추정 (신뢰도 표기 포함)",
-  "distribution": "유통 경로 및 마진 구조 (각 단계 % 추정)",
+  "distribution": "유통 경로 및 마진 구조",
   "market": "시장 규모 추정 (국내/글로벌)",
   "opportunities": ["기회1", "기회2", "기회3"],
   "ideas": [
-    {"title": "아이디어 제목", "description": "구체적 설명 2~3문장", "revenueModel": "수익 모델"}
+    {"title":"아이디어 제목","description":"구체적 설명 2~3문장","revenueModel":"수익 모델"}
   ],
-  "reliabilityNote": "분석 신뢰도 전반 코멘트"
+  "reliabilityNote": "분석 신뢰도 전반 코멘트 1문장"
 }`,
         messages
       })
     });
-
-    const data = await response.json();
-    let text = data.content?.map(i => i.text || '').join('') || '';
-    text = text.replace(/```json|```/g, '').trim();
+    const data = await res.json();
+    let text = (data.content||[]).map(i=>i.text||'').join('');
+    text = text.replace(/```json|```/g,'').trim();
     const result = JSON.parse(text);
     currentAnalysis = { ...result, inputContent, inputType, timestamp: new Date().toISOString() };
-    renderAnalysisResult(resultDiv, result, inputContent);
+    renderAnalysisResult(resultDiv, result);
   } catch(e) {
-    resultDiv.innerHTML = `<div class="error-card">❌ 분석 중 오류가 발생했습니다.<br><small>${e.message}</small></div>`;
+    resultDiv.innerHTML = `<div class="toss-card mt-16 error-state">
+      <div class="error-icon">⚠️</div>
+      <div class="error-msg">분석 중 오류가 발생했습니다</div>
+      <div class="error-detail">${e.message}</div>
+    </div>`;
   }
 };
 
-function renderAnalysisResult(container, r, productName) {
+function renderAnalysisResult(container, r) {
   container.innerHTML = `
-    <div class="result-header">
-      <h2 class="result-product">${r.productName || productName}</h2>
-      <div class="reliability-badge">⚠️ AI 추정 분석 · 수치 검증 필요</div>
+    <div class="result-name-bar">
+      <span class="result-name">${r.productName || r.inputContent}</span>
+      <span class="result-badge">AI 분석</span>
     </div>
 
-    <div class="result-cards">
-      <div class="result-card">
-        <div class="card-label">📋 상품 개요</div>
-        <div class="card-body">${r.overview}</div>
-      </div>
-      <div class="result-card">
-        <div class="card-label">🏭 생산 구조</div>
-        <div class="card-body">${r.production}</div>
-      </div>
-      <div class="result-card">
-        <div class="card-label">🚚 유통 경로</div>
-        <div class="card-body">${r.distribution}</div>
-      </div>
-      <div class="result-card">
-        <div class="card-label">📊 시장 규모</div>
-        <div class="card-body">${r.market}</div>
-      </div>
-      <div class="result-card">
-        <div class="card-label">💡 기회 포인트</div>
-        <div class="card-body">
-          ${r.opportunities?.map(o => `<div class="opp-item">▸ ${o}</div>`).join('') || ''}
+    <div class="toss-card">
+      <div class="card-section-label">📋 상품 개요</div>
+      <div class="card-body-text">${r.overview}</div>
+    </div>
+    <div class="toss-card">
+      <div class="card-section-label">🏭 생산 구조</div>
+      <div class="card-body-text">${r.production}</div>
+    </div>
+    <div class="toss-card">
+      <div class="card-section-label">🚚 유통 경로</div>
+      <div class="card-body-text">${r.distribution}</div>
+    </div>
+    <div class="toss-card">
+      <div class="card-section-label">📊 시장 규모</div>
+      <div class="card-body-text">${r.market}</div>
+    </div>
+    <div class="toss-card">
+      <div class="card-section-label">💡 기회 포인트</div>
+      ${r.opportunities?.map(o=>`<div class="opp-row">
+        <div class="opp-dot"></div><div class="opp-text">${o}</div>
+      </div>`).join('')}
+    </div>
+
+    <div class="section-label mt-24">내 생각을 먼저 적어보세요</div>
+    <div class="toss-card">
+      <div class="my-idea-hint">AI가 분석을 제공했습니다. 이 상품에서 어떤 기회가 보이나요?</div>
+      <textarea id="myIdeaInput" class="toss-textarea sm" placeholder="나만의 아이디어를 자유롭게 써보세요..."></textarea>
+      <button class="toss-btn secondary full-width mt-12" onclick="expandMyIdea()">AI로 아이디어 확장하기</button>
+    </div>
+    <div id="myIdeaExpanded"></div>
+
+    <div class="section-label mt-24">AI 제안 아이디어</div>
+    ${r.ideas?.map((idea,i) => `
+      <div class="toss-card idea-card-item">
+        <div class="idea-num-row">
+          <div class="idea-num">${i+1}</div>
+          <div class="idea-title">${idea.title}</div>
         </div>
+        <div class="idea-desc">${idea.description}</div>
+        <div class="idea-revenue-tag">💰 ${idea.revenueModel}</div>
       </div>
+    `).join('')||''}
+
+    <div class="reliability-strip">
+      <span>⚠️ AI 추정 분석</span>
+      <span>${r.reliabilityNote}</span>
     </div>
 
-    <div class="ideas-section">
-      <h3 class="section-title">💰 돈 되는 아이디어</h3>
-      <div class="my-idea-box">
-        <p class="my-idea-label">✏️ 내 생각을 먼저 적어보세요</p>
-        <textarea id="myIdeaInput" class="my-idea-input" placeholder="이 상품을 보고 떠오른 나만의 아이디어를 자유롭게 써보세요..."></textarea>
-        <button class="expand-btn" onclick="expandMyIdea()">AI로 확장하기 →</button>
-      </div>
-      <div id="myIdeaExpanded"></div>
-      <div class="ai-ideas">
-        <p class="ai-ideas-label">🤖 AI 제안 아이디어</p>
-        ${r.ideas?.map((idea, i) => `
-          <div class="idea-card">
-            <div class="idea-num">${i+1}</div>
-            <div class="idea-content">
-              <div class="idea-title">${idea.title}</div>
-              <div class="idea-desc">${idea.description}</div>
-              <div class="idea-revenue">💰 ${idea.revenueModel}</div>
-            </div>
-          </div>
-        `).join('') || ''}
-      </div>
-    </div>
-
-    <div class="reliability-note">
-      <span class="rn-icon">ℹ️</span>
-      <span>${r.reliabilityNote || '모든 수치는 AI 추정값입니다. 중요한 의사결정 전 반드시 직접 검증하세요.'}</span>
-    </div>
-
-    <div class="action-btns">
-      <button class="action-btn primary" onclick="saveAnalysis()">📁 아이디어함에 저장</button>
-      <button class="action-btn secondary" onclick="goToEval()">📊 실현가능성 평가</button>
+    <div class="action-row mt-16">
+      <button class="toss-btn primary half" onclick="saveAnalysis()">아이디어함 저장</button>
+      <button class="toss-btn secondary half" onclick="goToEval()">실현가능성 평가</button>
     </div>
   `;
 }
@@ -321,50 +505,42 @@ function renderAnalysisResult(container, r, productName) {
 window.expandMyIdea = async function() {
   const myIdea = document.getElementById('myIdeaInput')?.value?.trim();
   if (!myIdea) { showToast('아이디어를 먼저 입력해주세요', 'error'); return; }
-
-  const expandDiv = document.getElementById('myIdeaExpanded');
-  expandDiv.innerHTML = `<div class="loading-inline">🤖 아이디어 확장 중...</div>`;
-
+  const div = document.getElementById('myIdeaExpanded');
+  div.innerHTML = `<div class="toss-card loading-simple">🤖 아이디어 확장 중...</div>`;
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1000,
-        system: `사용자의 비즈니스 아이디어를 구체화하고 확장해주는 전문가입니다.
-응답은 JSON만 출력하세요:
-{"expanded": "확장된 아이디어 설명 3~4문장", "revenueModel": "수익 모델", "firstStep": "첫 번째 실행 단계"}`,
-        messages: [{ role: "user", content: `상품: ${currentAnalysis?.productName}\n내 아이디어: ${myIdea}\n\n이 아이디어를 구체적으로 확장해주세요.` }]
+        model:"claude-sonnet-4-6", max_tokens:1000,
+        system:`사용자의 비즈니스 아이디어를 구체화하는 전문가입니다. JSON만 출력:
+{"expanded":"확장된 설명 3~4문장","revenueModel":"수익 모델","firstStep":"첫 번째 실행 단계"}`,
+        messages:[{role:"user",content:`상품: ${currentAnalysis?.productName}\n내 아이디어: ${myIdea}`}]
       })
     });
-    const data = await response.json();
-    let text = data.content?.map(i => i.text || '').join('');
-    text = text.replace(/```json|```/g, '').trim();
+    const data = await res.json();
+    let text = (data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
     const r = JSON.parse(text);
-    expandDiv.innerHTML = `
-      <div class="expanded-idea-card">
-        <div class="card-label">✨ AI가 확장한 내 아이디어</div>
-        <div class="card-body">${r.expanded}</div>
-        <div class="idea-revenue">💰 ${r.revenueModel}</div>
-        <div class="first-step">🚀 첫 단계: ${r.firstStep}</div>
+    div.innerHTML = `
+      <div class="toss-card expanded-card">
+        <div class="card-section-label">✨ AI가 확장한 내 아이디어</div>
+        <div class="card-body-text">${r.expanded}</div>
+        <div class="idea-revenue-tag mt-8">💰 ${r.revenueModel}</div>
+        <div class="first-step-tag">🚀 첫 단계: ${r.firstStep}</div>
       </div>`;
     if (currentAnalysis) currentAnalysis.myIdea = myIdea;
   } catch(e) {
-    expandDiv.innerHTML = `<div class="error-card">확장 실패: ${e.message}</div>`;
+    div.innerHTML = `<div class="toss-card error-state"><div class="error-msg">확장 실패: ${e.message}</div></div>`;
   }
 };
 
 window.saveAnalysis = async function() {
   if (!currentAnalysis) { showToast('분석 결과가 없습니다', 'error'); return; }
-  if (!currentUser) { showToast('로그인이 필요합니다', 'error'); return; }
   try {
     await addDoc(collection(db, `users/${currentUser.uid}/analyses`), {
-      ...currentAnalysis,
-      savedAt: serverTimestamp(),
-      evaluated: false
+      ...currentAnalysis, savedAt: serverTimestamp(), evaluated: false
     });
-    showToast('아이디어함에 저장되었습니다 ✅', 'success');
+    showToast('아이디어함에 저장됐습니다 ✅');
   } catch(e) { showToast('저장 실패: ' + e.message, 'error'); }
 };
 
@@ -373,195 +549,209 @@ window.goToEval = function() {
   renderPage('eval');
 };
 
-// ── IDEAS PAGE ────────────────────────────────────────
+// ─── IDEAS PAGE ───────────────────────────────────────
 async function renderIdeas(main) {
-  main.innerHTML = `<div class="page-header"><h1 class="page-title">💡 아이디어함</h1><p class="page-sub">저장된 분석과 아이디어 목록</p></div><div class="loading-inline">불러오는 중...</div>`;
+  main.innerHTML = `
+    <div class="page-hero">
+      <div class="hero-eyebrow">아이디어함</div>
+      <h1 class="hero-title">저장된 분석</h1>
+    </div>
+    <div class="loading-simple center-text">불러오는 중...</div>`;
 
   try {
-    const snap = await getDocs(query(collection(db, `users/${currentUser.uid}/analyses`), orderBy('savedAt', 'desc')));
-    const analyses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const snap = await getDocs(query(collection(db, `users/${currentUser.uid}/analyses`), orderBy('savedAt','desc')));
+    const list = snap.docs.map(d => ({id:d.id,...d.data()}));
 
-    const totalCount = analyses.length;
-    const evalCount = analyses.filter(a => a.evaluated).length;
-    const industries = {};
-    analyses.forEach(a => {
-      const key = a.productName?.split(' ')[0] || '기타';
-      industries[key] = (industries[key] || 0) + 1;
-    });
-    const topIndustry = Object.entries(industries).sort((a,b) => b[1]-a[1]).slice(0,3).map(e=>e[0]).join(', ');
+    const evalCount = list.filter(a=>a.evaluated).length;
+    const topKeys = {};
+    list.forEach(a => { const k = (a.productName||'기타').split(' ')[0]; topKeys[k]=(topKeys[k]||0)+1; });
+    const topThree = Object.entries(topKeys).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0]).join(' · ');
 
     main.innerHTML = `
-      <div class="page-header">
-        <h1 class="page-title">💡 아이디어함</h1>
-        <p class="page-sub">저장된 분석과 아이디어 목록</p>
+      <div class="page-hero">
+        <div class="hero-eyebrow">아이디어함</div>
+        <h1 class="hero-title">저장된 분석</h1>
       </div>
-      <div class="dashboard-row">
-        <div class="dash-card"><div class="dash-num">${totalCount}</div><div class="dash-label">총 분석</div></div>
-        <div class="dash-card"><div class="dash-num">${evalCount}</div><div class="dash-label">평가 완료</div></div>
-        <div class="dash-card"><div class="dash-num">${topIndustry || '-'}</div><div class="dash-label">관심 분야</div></div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="stat-num">${list.length}</div><div class="stat-label">총 분석</div></div>
+        <div class="stat-box"><div class="stat-num">${evalCount}</div><div class="stat-label">평가 완료</div></div>
+        <div class="stat-box wide"><div class="stat-num small">${topThree||'-'}</div><div class="stat-label">관심 분야</div></div>
       </div>
-      ${analyses.length === 0
-        ? `<div class="empty-state"><div class="empty-icon">🔍</div><p>아직 저장된 분석이 없습니다<br>렌즈 탭에서 상품을 분석해보세요</p></div>`
-        : analyses.map(a => `
-          <div class="idea-list-card" onclick="toggleIdeaDetail('${a.id}')">
-            <div class="idea-list-header">
-              <div class="idea-list-name">${a.productName || a.inputContent}</div>
-              <div class="idea-list-meta">
-                ${a.evaluated ? '<span class="badge-eval">평가완료</span>' : ''}
+      ${list.length === 0
+        ? `<div class="empty-state">
+            <div class="empty-icon">🔍</div>
+            <div class="empty-title">아직 분석이 없습니다</div>
+            <div class="empty-desc">렌즈 탭에서 상품을 분석해보세요</div>
+            <button class="toss-btn primary mt-16" onclick="renderPage('lens')" style="width:auto;padding:12px 28px">분석 시작하기</button>
+          </div>`
+        : list.map(a => `
+          <div class="toss-card idea-list-card" onclick="toggleDetail('${a.id}')">
+            <div class="idea-list-row">
+              <div>
+                <div class="idea-list-name">${a.productName||a.inputContent}</div>
+                <div class="idea-list-opp">${a.opportunities?.[0]||''}</div>
+              </div>
+              <div class="idea-list-right">
+                ${a.evaluated ? '<span class="pill-green">평가완료</span>' : ''}
                 <span class="idea-date">${formatDate(a.savedAt)}</span>
+                <span class="chevron">›</span>
               </div>
             </div>
-            <div class="idea-list-preview">${a.opportunities?.[0] || ''}</div>
-            <div id="detail-${a.id}" class="idea-detail" style="display:none">
-              <div class="detail-section"><b>📋 개요</b><p>${a.overview || ''}</p></div>
-              <div class="detail-section"><b>🏭 생산구조</b><p>${a.production || ''}</p></div>
-              <div class="detail-section"><b>🚚 유통경로</b><p>${a.distribution || ''}</p></div>
-              <div class="detail-section"><b>📊 시장규모</b><p>${a.market || ''}</p></div>
-              ${a.myIdea ? `<div class="detail-section"><b>✏️ 내 아이디어</b><p>${a.myIdea}</p></div>` : ''}
+            <div id="d-${a.id}" class="idea-detail-panel" style="display:none">
+              <div class="detail-divider"></div>
+              ${a.overview ? `<div class="detail-row"><div class="detail-label">개요</div><div class="detail-val">${a.overview}</div></div>` : ''}
+              ${a.production ? `<div class="detail-row"><div class="detail-label">생산구조</div><div class="detail-val">${a.production}</div></div>` : ''}
+              ${a.myIdea ? `<div class="detail-row"><div class="detail-label">내 아이디어</div><div class="detail-val highlight">${a.myIdea}</div></div>` : ''}
               <div class="detail-actions">
-                <button class="action-btn secondary small" onclick="event.stopPropagation();loadAndEval('${a.id}')">📊 평가하기</button>
-                <button class="action-btn danger small" onclick="event.stopPropagation();deleteAnalysis('${a.id}')">🗑️ 삭제</button>
+                <button class="toss-btn secondary sm-btn" onclick="event.stopPropagation();loadForEval('${a.id}')">📊 평가하기</button>
+                <button class="toss-btn danger sm-btn" onclick="event.stopPropagation();deleteItem('${a.id}')">삭제</button>
               </div>
             </div>
           </div>
         `).join('')}
     `;
   } catch(e) {
-    main.innerHTML = `<div class="error-card">불러오기 실패: ${e.message}</div>`;
+    main.innerHTML += `<div class="toss-card error-state"><div class="error-msg">${e.message}</div></div>`;
   }
 }
 
-window.toggleIdeaDetail = function(id) {
-  const el = document.getElementById(`detail-${id}`);
+window.toggleDetail = function(id) {
+  const el = document.getElementById(`d-${id}`);
   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 };
 
-window.deleteAnalysis = async function(id) {
+window.deleteItem = async function(id) {
   if (!confirm('삭제하시겠습니까?')) return;
   try {
     await deleteDoc(doc(db, `users/${currentUser.uid}/analyses`, id));
-    showToast('삭제되었습니다', 'success');
+    showToast('삭제됐습니다');
     renderPage('ideas');
   } catch(e) { showToast('삭제 실패', 'error'); }
 };
 
-window.loadAndEval = async function(id) {
+window.loadForEval = async function(id) {
   const snap = await getDocs(collection(db, `users/${currentUser.uid}/analyses`));
   const found = snap.docs.find(d => d.id === id);
-  if (found) {
-    currentAnalysis = { id: found.id, ...found.data() };
-    renderPage('eval');
-  }
+  if (found) { currentAnalysis = {id: found.id, ...found.data()}; renderPage('eval'); }
 };
 
-// ── EVAL PAGE ─────────────────────────────────────────
+// ─── EVAL PAGE ────────────────────────────────────────
 function renderEval(main) {
   if (!currentAnalysis) {
     main.innerHTML = `
-      <div class="page-header"><h1 class="page-title">📊 평가실</h1></div>
+      <div class="page-hero"><div class="hero-eyebrow">평가실</div><h1 class="hero-title">실현가능성 평가</h1></div>
       <div class="empty-state">
         <div class="empty-icon">📊</div>
-        <p>평가할 아이디어를 선택해주세요<br>아이디어함에서 아이디어를 선택하세요</p>
-        <button class="action-btn primary" onclick="renderPage('ideas')">아이디어함으로</button>
+        <div class="empty-title">평가할 아이디어를 선택해주세요</div>
+        <div class="empty-desc">아이디어함에서 아이디어를 선택하거나<br>렌즈에서 분석 후 바로 평가할 수 있습니다</div>
+        <button class="toss-btn primary mt-16" onclick="renderPage('ideas')" style="width:auto;padding:12px 28px">아이디어함으로</button>
       </div>`;
     return;
   }
 
   main.innerHTML = `
-    <div class="page-header">
-      <h1 class="page-title">📊 평가실</h1>
-      <p class="page-sub">${currentAnalysis.productName || currentAnalysis.inputContent}</p>
+    <div class="page-hero">
+      <div class="hero-eyebrow">평가실</div>
+      <h1 class="hero-title">실현가능성 평가</h1>
     </div>
-    <div class="eval-section">
-      <p class="eval-desc">AI가 5가지 항목으로 실현가능성을 평가합니다</p>
-      ${!userProfile ? `<div class="profile-notice">💡 <a href="#" onclick="renderPage('settings')">프로필을 설정</a>하면 더 정확한 개인화 평가를 받을 수 있습니다</div>` : ''}
-      <button class="analyze-btn" onclick="runEvaluation()">
-        <span class="btn-icon">⚡</span> 평가 시작
-      </button>
+    <div class="toss-card selected-item-bar">
+      <div class="selected-label">평가 대상</div>
+      <div class="selected-name">${currentAnalysis.productName || currentAnalysis.inputContent}</div>
     </div>
+    ${!userProfile ? `
+      <div class="toss-card notice-card">
+        <div class="notice-icon">💡</div>
+        <div>
+          <div class="notice-title">프로필을 설정하면 더 정확합니다</div>
+          <div class="notice-desc">나의 역량, 자본, 관심 분야를 입력하면 개인화된 평가를 받을 수 있어요</div>
+          <button class="toss-btn ghost mt-8 compact" onclick="renderPage('settings')">프로필 설정하기 →</button>
+        </div>
+      </div>` : ''}
+    <div class="toss-card eval-intro">
+      <div class="eval-intro-title">5가지 항목으로 평가합니다</div>
+      <div class="eval-intro-items">
+        <div class="eval-intro-item"><span>시장성</span><span class="eval-dot">·</span><span>실행 난이도</span><span class="eval-dot">·</span><span>초기 자본</span></div>
+        <div class="eval-intro-item"><span>경쟁 강도</span><span class="eval-dot">·</span><span>나의 적합도</span></div>
+      </div>
+    </div>
+    <button class="toss-btn primary full-width" onclick="runEval()">평가 시작하기</button>
     <div id="evalResult"></div>
   `;
 }
 
-window.runEvaluation = async function() {
-  const evalDiv = document.getElementById('evalResult');
-  evalDiv.innerHTML = `<div class="loading-inline">🤖 실현가능성 평가 중...</div>`;
-
+window.runEval = async function() {
+  const div = document.getElementById('evalResult');
+  div.innerHTML = `<div class="toss-card loading-simple center-text mt-16">🤖 실현가능성 평가 중...</div>`;
   try {
     const profileCtx = userProfile
       ? `사용자 프로필: 역량(${userProfile.skills}), 자본(${userProfile.capital}), 관심산업(${userProfile.industry}), 가용시간(${userProfile.time})`
-      : '사용자 프로필 없음 - 일반적 기준으로 평가';
+      : '사용자 프로필 없음 - 일반 기준으로 평가';
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1500,
-        system: `비즈니스 아이디어 실현가능성 평가 전문가입니다.
-5가지 항목을 각 0~20점으로 평가하고 근거를 제시하세요.
+        model:"claude-sonnet-4-6", max_tokens:1500,
+        system:`비즈니스 아이디어 실현가능성 평가 전문가입니다.
 ${profileCtx}
-JSON만 출력하세요:
+JSON만 출력:
 {
-  "scores": {
-    "market": {"score": 0, "reason": ""},
-    "execution": {"score": 0, "reason": ""},
-    "capital": {"score": 0, "reason": ""},
-    "competition": {"score": 0, "reason": ""},
-    "fit": {"score": 0, "reason": ""}
-  },
-  "total": 0,
-  "grade": "S/A/B/C",
-  "summary": "종합 평가 2~3문장",
-  "strengthPoint": "가장 강한 점",
-  "weakPoint": "가장 약한 점",
-  "nextAction": "당장 해볼 수 있는 첫 번째 액션"
+  "scores":{"market":{"score":0,"reason":""},"execution":{"score":0,"reason":""},"capital":{"score":0,"reason":""},"competition":{"score":0,"reason":""},"fit":{"score":0,"reason":""}},
+  "total":0,"grade":"S|A|B|C",
+  "summary":"종합 평가 2문장",
+  "strengthPoint":"가장 강한 점",
+  "weakPoint":"가장 약한 점",
+  "nextAction":"당장 해볼 수 있는 첫 번째 액션 구체적으로"
 }`,
-        messages: [{ role: "user", content: `상품: ${currentAnalysis.productName}\n개요: ${currentAnalysis.overview}\n기회: ${currentAnalysis.opportunities?.join(', ')}\n아이디어: ${currentAnalysis.ideas?.map(i=>i.title).join(', ')}` }]
+        messages:[{role:"user",content:`상품: ${currentAnalysis.productName}\n개요: ${currentAnalysis.overview}\n기회: ${(currentAnalysis.opportunities||[]).join(', ')}\n아이디어: ${(currentAnalysis.ideas||[]).map(i=>i.title).join(', ')}`}]
       })
     });
-
-    const data = await response.json();
-    let text = data.content?.map(i => i.text || '').join('');
-    text = text.replace(/```json|```/g, '').trim();
+    const data = await res.json();
+    let text = (data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
     const ev = JSON.parse(text);
 
-    const gradeColor = { S: '#00C896', A: '#4CAF50', B: '#FFC107', C: '#FF5722' };
-    const scoreLabels = { market: '시장성', execution: '실행난이도', capital: '자본요건', competition: '경쟁강도', fit: '나의 적합도' };
+    const gradeColors = {S:'#00C896',A:'#4CAF50',B:'#FFC107',C:'#FF5722'};
+    const gc = gradeColors[ev.grade] || '#00C896';
+    const labels = {market:'시장성',execution:'실행 난이도',capital:'초기 자본',competition:'경쟁 강도',fit:'나의 적합도'};
 
-    evalDiv.innerHTML = `
-      <div class="eval-grade-box" style="border-color:${gradeColor[ev.grade]}">
-        <div class="grade-letter" style="color:${gradeColor[ev.grade]}">${ev.grade}</div>
-        <div class="grade-total">${ev.total}점 / 100점</div>
+    div.innerHTML = `
+      <div class="grade-hero" style="border-color:${gc}20;background:${gc}08">
+        <div class="grade-letter" style="color:${gc}">${ev.grade}</div>
+        <div class="grade-score" style="color:${gc}">${ev.total}점</div>
+        <div class="grade-max">/ 100점</div>
         <div class="grade-summary">${ev.summary}</div>
       </div>
 
-      <canvas id="radarCanvas" width="300" height="300" style="max-width:300px;margin:0 auto;display:block;"></canvas>
+      <canvas id="radarCanvas" style="max-width:280px;width:100%;margin:0 auto;display:block"></canvas>
 
-      <div class="score-list">
-        ${Object.entries(ev.scores).map(([key, val]) => `
-          <div class="score-item">
-            <div class="score-header">
-              <span class="score-label">${scoreLabels[key]}</span>
-              <span class="score-val" style="color:${gradeColor[ev.grade]}">${val.score}/20</span>
-            </div>
-            <div class="score-bar"><div class="score-fill" style="width:${val.score/20*100}%;background:${gradeColor[ev.grade]}"></div></div>
-            <div class="score-reason">${val.reason}</div>
+      <div class="section-label mt-24">항목별 점수</div>
+      ${Object.entries(ev.scores).map(([k,v]) => `
+        <div class="toss-card score-card">
+          <div class="score-row">
+            <span class="score-label">${labels[k]}</span>
+            <span class="score-num" style="color:${gc}">${v.score}<span class="score-denom">/20</span></span>
           </div>
-        `).join('')}
+          <div class="score-bar-bg">
+            <div class="score-bar-fill" style="width:${v.score/20*100}%;background:${gc}"></div>
+          </div>
+          <div class="score-reason">${v.reason}</div>
+        </div>
+      `).join('')}
+
+      <div class="section-label mt-24">종합 인사이트</div>
+      <div class="toss-card">
+        <div class="insight-row green"><span class="insight-icon">✅</span><span>${ev.strengthPoint}</span></div>
+        <div class="insight-divider"></div>
+        <div class="insight-row yellow"><span class="insight-icon">⚠️</span><span>${ev.weakPoint}</span></div>
+        <div class="insight-divider"></div>
+        <div class="insight-row blue"><span class="insight-icon">🚀</span><span>${ev.nextAction}</span></div>
       </div>
 
-      <div class="eval-insights">
-        <div class="insight-card strength">✅ 강점: ${ev.strengthPoint}</div>
-        <div class="insight-card weak">⚠️ 약점: ${ev.weakPoint}</div>
-        <div class="insight-card action">🚀 첫 액션: ${ev.nextAction}</div>
+      <div class="action-row mt-16">
+        <button class="toss-btn primary half" onclick="genDraft()">사업 초안 생성</button>
+        <button class="toss-btn secondary half" onclick="renderPage('cases')">유사 사례 탐구</button>
       </div>
-
-      <div class="action-btns">
-        <button class="action-btn primary" onclick="generateBusinessDraft()">📄 사업 초안 생성</button>
-        <button class="action-btn secondary" onclick="goToCases()">📚 유사 사례 탐구</button>
-      </div>
-      <div id="businessDraft"></div>
+      <div id="draftResult"></div>
     `;
 
     setTimeout(() => {
@@ -569,255 +759,240 @@ JSON만 출력하세요:
       if (ctx) {
         if (radarChart) radarChart.destroy();
         radarChart = new Chart(ctx, {
-          type: 'radar',
-          data: {
-            labels: ['시장성', '실행', '자본', '경쟁', '적합도'],
-            datasets: [{
-              data: Object.values(ev.scores).map(s => s.score),
-              backgroundColor: 'rgba(0,200,150,0.2)',
-              borderColor: '#00C896',
-              pointBackgroundColor: '#00C896',
+          type:'radar',
+          data:{
+            labels:['시장성','실행','자본','경쟁','적합도'],
+            datasets:[{
+              data: Object.values(ev.scores).map(s=>s.score),
+              backgroundColor: gc + '22',
+              borderColor: gc,
+              pointBackgroundColor: gc,
+              pointRadius: 4,
               borderWidth: 2
             }]
           },
-          options: {
-            scales: { r: { min: 0, max: 20, ticks: { color: '#888', stepSize: 5 }, grid: { color: '#333' }, pointLabels: { color: '#ccc', font: { size: 12 } } } },
-            plugins: { legend: { display: false } }
+          options:{
+            scales:{r:{min:0,max:20,stepSize:5,
+              ticks:{color:'#999',font:{size:10},backdropColor:'transparent'},
+              grid:{color:'#E8E8E8'},
+              pointLabels:{color:'#333',font:{size:12,weight:'600'}}
+            }},
+            plugins:{legend:{display:false}},
+            elements:{line:{tension:0.2}}
           }
         });
       }
     }, 100);
 
-    // Save evaluation
     if (currentUser && currentAnalysis.id) {
       try {
         await addDoc(collection(db, `users/${currentUser.uid}/evaluations`), {
-          analysisId: currentAnalysis.id,
-          productName: currentAnalysis.productName,
-          scores: ev.scores,
-          total: ev.total,
-          grade: ev.grade,
-          summary: ev.summary,
-          nextAction: ev.nextAction,
+          analysisId: currentAnalysis.id, productName: currentAnalysis.productName,
+          scores: ev.scores, total: ev.total, grade: ev.grade,
           createdAt: serverTimestamp()
         });
-        await updateDoc(doc(db, `users/${currentUser.uid}/analyses`, currentAnalysis.id), { evaluated: true });
+        await updateDoc(doc(db, `users/${currentUser.uid}/analyses`, currentAnalysis.id), {evaluated:true});
         currentAnalysis.evalResult = ev;
       } catch(e) {}
     }
-
   } catch(e) {
-    evalDiv.innerHTML = `<div class="error-card">평가 실패: ${e.message}</div>`;
+    div.innerHTML = `<div class="toss-card error-state"><div class="error-msg">평가 실패: ${e.message}</div></div>`;
   }
 };
 
-window.generateBusinessDraft = async function() {
-  const draftDiv = document.getElementById('businessDraft');
-  draftDiv.innerHTML = `<div class="loading-inline">📄 사업 초안 작성 중...</div>`;
-
+window.genDraft = async function() {
+  const div = document.getElementById('draftResult');
+  div.innerHTML = `<div class="toss-card loading-simple center-text mt-16">📄 사업 초안 작성 중...</div>`;
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1500,
-        system: `1페이지 사업 초안을 작성하는 전문가입니다.
-JSON만 출력하세요:
-{
-  "bizName": "사업명",
-  "oneLiner": "한줄 정의",
-  "target": "타깃 고객",
-  "value": "핵심 가치",
-  "revenue": "수익 모델",
-  "plan90": ["첫달 할 일", "둘째달 할 일", "셋째달 할 일"],
-  "investment": "예상 초기 투자금"
-}`,
-        messages: [{ role: "user", content: `상품: ${currentAnalysis.productName}\n기회: ${currentAnalysis.opportunities?.join(', ')}\n아이디어: ${currentAnalysis.ideas?.map(i=>i.title+': '+i.description).join('\n')}` }]
+        model:"claude-sonnet-4-6", max_tokens:1500,
+        system:`1페이지 사업 초안을 작성하는 전문가입니다. JSON만 출력:
+{"bizName":"사업명","oneLiner":"한줄 정의","target":"타깃 고객","value":"핵심 가치","revenue":"수익 모델","plan90":["1개월차 실행","2개월차 실행","3개월차 실행"],"investment":"예상 초기 투자금"}`,
+        messages:[{role:"user",content:`상품: ${currentAnalysis.productName}\n기회: ${(currentAnalysis.opportunities||[]).join(', ')}\n아이디어: ${(currentAnalysis.ideas||[]).map(i=>i.title+': '+i.description).join('\n')}`}]
       })
     });
-    const data = await response.json();
-    let text = data.content?.map(i => i.text || '').join('');
-    text = text.replace(/```json|```/g, '').trim();
+    const data = await res.json();
+    let text = (data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
     const d = JSON.parse(text);
-
-    draftDiv.innerHTML = `
-      <div class="draft-card">
-        <div class="draft-header">📄 사업 초안</div>
-        <div class="draft-title">${d.bizName}</div>
+    div.innerHTML = `
+      <div class="section-label mt-24">사업 초안</div>
+      <div class="toss-card draft-card">
+        <div class="draft-biz-name">${d.bizName}</div>
         <div class="draft-oneliner">"${d.oneLiner}"</div>
-        <div class="draft-rows">
-          <div class="draft-row"><span class="dr-label">타깃</span><span>${d.target}</span></div>
-          <div class="draft-row"><span class="dr-label">가치</span><span>${d.value}</span></div>
-          <div class="draft-row"><span class="dr-label">수익</span><span>${d.revenue}</span></div>
-          <div class="draft-row"><span class="dr-label">투자</span><span>${d.investment}</span></div>
+        <div class="draft-divider"></div>
+        <div class="draft-grid">
+          <div class="draft-item"><div class="draft-key">타깃</div><div class="draft-val">${d.target}</div></div>
+          <div class="draft-item"><div class="draft-key">가치</div><div class="draft-val">${d.value}</div></div>
+          <div class="draft-item"><div class="draft-key">수익</div><div class="draft-val">${d.revenue}</div></div>
+          <div class="draft-item"><div class="draft-key">투자</div><div class="draft-val">${d.investment}</div></div>
         </div>
-        <div class="plan-title">📅 첫 90일 실행 계획</div>
-        ${d.plan90?.map((p,i) => `<div class="plan-item"><span class="plan-month">${i+1}개월차</span>${p}</div>`).join('')}
+        <div class="draft-divider"></div>
+        <div class="draft-plan-title">첫 90일 실행 계획</div>
+        ${(d.plan90||[]).map((p,i)=>`
+          <div class="draft-plan-row">
+            <div class="draft-plan-month">${i+1}개월차</div>
+            <div class="draft-plan-content">${p}</div>
+          </div>
+        `).join('')}
       </div>
     `;
   } catch(e) {
-    draftDiv.innerHTML = `<div class="error-card">초안 생성 실패: ${e.message}</div>`;
+    div.innerHTML = `<div class="toss-card error-state"><div class="error-msg">초안 생성 실패: ${e.message}</div></div>`;
   }
 };
 
-window.goToCases = function() {
-  renderPage('cases');
-};
-
-// ── CASES PAGE ────────────────────────────────────────
+// ─── CASES PAGE ───────────────────────────────────────
 function renderCases(main) {
   if (!currentAnalysis) {
     main.innerHTML = `
-      <div class="page-header"><h1 class="page-title">📚 사례탐구</h1></div>
-      <div class="empty-state"><div class="empty-icon">📚</div><p>먼저 상품을 분석하고<br>평가실에서 사례탐구를 시작하세요</p></div>`;
+      <div class="page-hero"><div class="hero-eyebrow">사례탐구</div><h1 class="hero-title">유사 사례</h1></div>
+      <div class="empty-state">
+        <div class="empty-icon">📚</div>
+        <div class="empty-title">분석된 상품이 없습니다</div>
+        <div class="empty-desc">렌즈에서 상품을 분석하면<br>유사 사례를 탐구할 수 있습니다</div>
+        <button class="toss-btn primary mt-16" onclick="renderPage('lens')" style="width:auto;padding:12px 28px">렌즈로 이동</button>
+      </div>`;
     return;
   }
 
   main.innerHTML = `
-    <div class="page-header">
-      <h1 class="page-title">📚 사례탐구</h1>
-      <p class="page-sub">${currentAnalysis.productName || ''} 관련 사례</p>
+    <div class="page-hero">
+      <div class="hero-eyebrow">사례탐구</div>
+      <h1 class="hero-title">유사 사례</h1>
     </div>
-    <button class="analyze-btn" onclick="loadCases()">
-      <span class="btn-icon">🔍</span> 유사 사례 탐색
-    </button>
+    <div class="toss-card selected-item-bar">
+      <div class="selected-label">분석 대상</div>
+      <div class="selected-name">${currentAnalysis.productName || currentAnalysis.inputContent}</div>
+    </div>
+    <button class="toss-btn primary full-width" onclick="loadCases()">사례 탐색하기</button>
     <div id="casesResult"></div>
   `;
 }
 
 window.loadCases = async function() {
-  const casesDiv = document.getElementById('casesResult');
-  casesDiv.innerHTML = `<div class="loading-inline">🔍 사례 탐색 중...</div>`;
-
+  const div = document.getElementById('casesResult');
+  div.innerHTML = `<div class="toss-card loading-simple center-text mt-16">🔍 국내외 사례 탐색 중...</div>`;
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 2000,
-        system: `비즈니스 사례 전문가입니다. 관련 국내외 성공/실패 사례를 찾아주세요.
-JSON만 출력하세요:
-{
-  "cases": [
-    {
-      "name": "회사/사례명",
-      "country": "국내/해외",
-      "type": "성공/실패",
-      "strategy": "핵심 전략",
-      "reason": "성공 또는 실패 이유",
-      "insight": "내 아이디어에 주는 시사점"
-    }
-  ]
-}`,
-        messages: [{ role: "user", content: `상품: ${currentAnalysis.productName}\n기회포인트: ${currentAnalysis.opportunities?.join(', ')}\n아이디어: ${currentAnalysis.ideas?.map(i=>i.title).join(', ')}\n\n이와 유사한 국내외 성공/실패 사례 4~5개를 찾아주세요.` }]
+        model:"claude-sonnet-4-6", max_tokens:2000,
+        system:`비즈니스 사례 전문가입니다. 국내외 성공/실패 사례를 제공합니다. JSON만 출력:
+{"cases":[{"name":"회사/사례명","country":"국내|해외","type":"성공|실패","strategy":"핵심 전략","reason":"성공 또는 실패 이유","insight":"내 아이디어에 주는 시사점"}]}`,
+        messages:[{role:"user",content:`상품: ${currentAnalysis.productName}\n기회: ${(currentAnalysis.opportunities||[]).join(', ')}\n아이디어: ${(currentAnalysis.ideas||[]).map(i=>i.title).join(', ')}\n\n유사한 국내외 성공/실패 사례 4~5개를 찾아주세요.`}]
       })
     });
-
-    const data = await response.json();
-    let text = data.content?.map(i => i.text || '').join('');
-    text = text.replace(/```json|```/g, '').trim();
+    const data = await res.json();
+    let text = (data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
     const r = JSON.parse(text);
-
-    casesDiv.innerHTML = r.cases?.map(c => `
-      <div class="case-card ${c.type === '성공' ? 'success' : 'fail'}">
-        <div class="case-header">
-          <span class="case-name">${c.name}</span>
-          <span class="case-badge ${c.type === '성공' ? 'badge-success' : 'badge-fail'}">${c.country} · ${c.type}</span>
+    div.innerHTML = `<div class="section-label mt-16">발견된 사례</div>` +
+      (r.cases||[]).map(c => `
+        <div class="toss-card case-card ${c.type==='성공'?'case-success':'case-fail'}">
+          <div class="case-header-row">
+            <div class="case-name">${c.name}</div>
+            <div class="case-pills">
+              <span class="pill-country">${c.country}</span>
+              <span class="${c.type==='성공'?'pill-green':'pill-red'}">${c.type}</span>
+            </div>
+          </div>
+          <div class="case-detail-row"><span class="case-key">전략</span><span>${c.strategy}</span></div>
+          <div class="case-detail-row"><span class="case-key">이유</span><span>${c.reason}</span></div>
+          <div class="case-insight">💡 ${c.insight}</div>
         </div>
-        <div class="case-row"><b>전략</b> ${c.strategy}</div>
-        <div class="case-row"><b>이유</b> ${c.reason}</div>
-        <div class="case-insight">💡 ${c.insight}</div>
-      </div>
-    `).join('') || '<div class="error-card">사례를 찾지 못했습니다</div>';
+      `).join('');
   } catch(e) {
-    casesDiv.innerHTML = `<div class="error-card">사례 탐색 실패: ${e.message}</div>`;
+    div.innerHTML = `<div class="toss-card error-state"><div class="error-msg">${e.message}</div></div>`;
   }
 };
 
-// ── SETTINGS PAGE ─────────────────────────────────────
+// ─── SETTINGS PAGE ────────────────────────────────────
 function renderSettings(main) {
   const p = userProfile || {};
+  const name = currentUser?.displayName || currentUser?.email?.split('@')[0] || '사용자';
+  const email = currentUser?.email || '';
+  const initial = name.charAt(0).toUpperCase();
+
   main.innerHTML = `
-    <div class="page-header">
-      <h1 class="page-title">⚙️ 설정</h1>
+    <div class="page-hero">
+      <div class="hero-eyebrow">설정</div>
+      <h1 class="hero-title">내 계정</h1>
     </div>
 
-    <div class="settings-section">
-      <div class="settings-user">
-        <img src="${currentUser?.photoURL || ''}" class="user-avatar" onerror="this.src=''">
-        <div>
-          <div class="user-name">${currentUser?.displayName || ''}</div>
-          <div class="user-email">${currentUser?.email || ''}</div>
-        </div>
+    <div class="toss-card user-profile-card">
+      <div class="user-avatar-circle">${initial}</div>
+      <div class="user-info">
+        <div class="user-name">${name}</div>
+        <div class="user-email">${email}</div>
       </div>
       <button class="logout-btn" onclick="logout()">로그아웃</button>
     </div>
 
-    <div class="settings-section">
-      <h3 class="settings-title">🧭 내 프로필 (개인화 평가용)</h3>
-      <p class="settings-desc">프로필을 입력하면 실현가능성 평가가 나에게 맞게 조정됩니다</p>
+    <div class="section-label mt-24">내 프로필 설정</div>
+    <div class="toss-card">
+      <div class="profile-notice-text">입력할수록 평가실이 나에게 맞게 조정됩니다</div>
 
-      <div class="profile-form">
-        <label class="form-label">보유 역량 / 전문성</label>
-        <input type="text" id="pSkills" class="form-input" value="${p.skills || ''}" placeholder="예) 마케팅, 교육, IT 개발, 영업...">
-
-        <label class="form-label">가용 초기 자본</label>
-        <select id="pCapital" class="form-select">
-          <option value="">선택</option>
-          <option value="100만원 미만" ${p.capital==='100만원 미만'?'selected':''}>100만원 미만</option>
-          <option value="100~500만원" ${p.capital==='100~500만원'?'selected':''}>100~500만원</option>
-          <option value="500만~1천만원" ${p.capital==='500만~1천만원'?'selected':''}>500만~1천만원</option>
-          <option value="1천만~5천만원" ${p.capital==='1천만~5천만원'?'selected':''}>1천만~5천만원</option>
-          <option value="5천만원 이상" ${p.capital==='5천만원 이상'?'selected':''}>5천만원 이상</option>
-        </select>
-
-        <label class="form-label">가용 시간 (주당)</label>
-        <select id="pTime" class="form-select">
-          <option value="">선택</option>
-          <option value="5시간 미만" ${p.time==='5시간 미만'?'selected':''}>5시간 미만 (부업)</option>
-          <option value="5~15시간" ${p.time==='5~15시간'?'selected':''}>5~15시간 (사이드프로젝트)</option>
-          <option value="15~30시간" ${p.time==='15~30시간'?'selected':''}>15~30시간 (병행창업)</option>
-          <option value="풀타임" ${p.time==='풀타임'?'selected':''}>풀타임 (전업)</option>
-        </select>
-
-        <label class="form-label">관심 산업</label>
-        <input type="text" id="pIndustry" class="form-input" value="${p.industry || ''}" placeholder="예) 식품, 교육, IT, 커머스, 콘텐츠...">
-
-        <button class="action-btn primary" onclick="saveProfileForm()">💾 프로필 저장</button>
+      <div class="form-group mt-16">
+        <label class="form-label">보유 역량 · 전문성</label>
+        <input type="text" id="pSkills" class="toss-input" value="${p.skills||''}" placeholder="예) 마케팅, 교육, IT, 영업, 기획...">
       </div>
+      <div class="form-group">
+        <label class="form-label">가용 초기 자본</label>
+        <select id="pCapital" class="toss-input toss-select">
+          <option value="">선택해주세요</option>
+          ${['100만원 미만','100~500만원','500만~1천만원','1천만~5천만원','5천만원 이상'].map(v=>
+            `<option value="${v}" ${p.capital===v?'selected':''}>${v}</option>`
+          ).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">주당 가용 시간</label>
+        <select id="pTime" class="toss-input toss-select">
+          <option value="">선택해주세요</option>
+          ${['5시간 미만 (부업)','5~15시간 (사이드프로젝트)','15~30시간 (병행창업)','풀타임 (전업)'].map(v=>
+            `<option value="${v}" ${p.time===v?'selected':''}>${v}</option>`
+          ).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">관심 산업</label>
+        <input type="text" id="pIndustry" class="toss-input" value="${p.industry||''}" placeholder="예) 식품, 교육, IT, 커머스, 콘텐츠...">
+      </div>
+      <button class="toss-btn primary full-width mt-16" onclick="saveProfileForm()">프로필 저장</button>
     </div>
 
-    <div class="settings-section danger-zone">
-      <h3 class="settings-title">⚠️ 데이터 관리</h3>
-      <button class="action-btn danger" onclick="deleteAllData()">전체 데이터 삭제</button>
+    <div class="section-label mt-24">데이터 관리</div>
+    <div class="toss-card">
+      <button class="toss-btn danger full-width" onclick="deleteAll()">전체 데이터 삭제</button>
+      <div class="danger-notice">삭제된 데이터는 복구할 수 없습니다</div>
     </div>
   `;
 }
 
 window.saveProfileForm = async function() {
-  const data = {
-    skills: document.getElementById('pSkills')?.value,
-    capital: document.getElementById('pCapital')?.value,
-    time: document.getElementById('pTime')?.value,
-    industry: document.getElementById('pIndustry')?.value,
-  };
-  await saveProfile(data);
+  await saveProfile({
+    skills: document.getElementById('pSkills')?.value || '',
+    capital: document.getElementById('pCapital')?.value || '',
+    time: document.getElementById('pTime')?.value || '',
+    industry: document.getElementById('pIndustry')?.value || ''
+  });
 };
 
-window.deleteAllData = async function() {
-  if (!confirm('모든 분석 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+window.deleteAll = async function() {
+  if (!confirm('모든 분석 데이터를 삭제합니다. 계속하시겠습니까?')) return;
   try {
-    const snap = await getDocs(collection(db, `users/${currentUser.uid}/analyses`));
-    for (const d of snap.docs) await deleteDoc(d.ref);
-    const snap2 = await getDocs(collection(db, `users/${currentUser.uid}/evaluations`));
-    for (const d of snap2.docs) await deleteDoc(d.ref);
-    showToast('전체 데이터가 삭제되었습니다', 'success');
+    const s1 = await getDocs(collection(db, `users/${currentUser.uid}/analyses`));
+    for (const d of s1.docs) await deleteDoc(d.ref);
+    const s2 = await getDocs(collection(db, `users/${currentUser.uid}/evaluations`));
+    for (const d of s2.docs) await deleteDoc(d.ref);
+    showToast('모든 데이터가 삭제됐습니다');
   } catch(e) { showToast('삭제 실패', 'error'); }
 };
 
-// ── UTILS ─────────────────────────────────────────────
+// ─── UTILS ────────────────────────────────────────────
 function fileToBase64(file) {
   return new Promise((res, rej) => {
     const r = new FileReader();
@@ -830,413 +1005,812 @@ function fileToBase64(file) {
 function formatDate(ts) {
   if (!ts) return '';
   const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('ko-KR', {month:'short', day:'numeric'});
 }
 
-function showToast(msg, type = 'success') {
+function showToast(msg, type='success') {
   const t = document.createElement('div');
-  t.className = `toast toast-${type}`;
+  t.className = `toast ${type==='error'?'toast-error':''}`;
   t.textContent = msg;
   document.body.appendChild(t);
-  setTimeout(() => t.classList.add('show'), 10);
-  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2500);
+  requestAnimationFrame(() => { t.classList.add('show'); });
+  setTimeout(() => { t.classList.remove('show'); setTimeout(()=>t.remove(), 300); }, 2500);
 }
+
+// Init onboarding
+renderOnboardingSlide();
 </script>
+
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #0A0A0A;
-  --bg2: #141414;
-  --bg3: #1C1C1C;
-  --border: #2A2A2A;
+  --white: #FFFFFF;
+  --bg: #F7F8FA;
+  --bg2: #FFFFFF;
+  --border: #F0F0F0;
+  --border2: #E8E8E8;
+  --text: #191919;
+  --text2: #666666;
+  --text3: #AAAAAA;
   --green: #00C896;
-  --green-dim: rgba(0,200,150,0.12);
-  --green-glow: rgba(0,200,150,0.3);
-  --text: #F0F0F0;
-  --text2: #A0A0A0;
-  --text3: #606060;
-  --danger: #FF4B4B;
-  --warn: #FFC107;
-  --radius: 12px;
-  --radius-sm: 8px;
+  --green-light: #E8F9F4;
+  --green-mid: rgba(0,200,150,0.15);
+  --blue: #0064FF;
+  --danger: #FF4040;
+  --warn: #FF9900;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
 
-html, body {
+html { height: 100%; }
+body {
   height: 100%;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
+  overflow: hidden;
 }
 
-/* LOGIN */
-#loginScreen {
+/* ── SCREENS ── */
+.screen { height: 100vh; overflow: hidden; }
+
+/* ── ONBOARDING ── */
+#onboardingScreen {
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  height: 100vh;
+}
+
+#onboardingSlide {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  padding: 40px 24px;
-  background: radial-gradient(ellipse at 50% 0%, rgba(0,200,150,0.08) 0%, transparent 70%);
-}
-
-.login-logo {
-  font-size: 52px;
-  margin-bottom: 16px;
-  filter: drop-shadow(0 0 20px var(--green-glow));
-}
-
-.login-brand {
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--green);
-  letter-spacing: -0.5px;
-  margin-bottom: 4px;
-}
-
-.login-sub {
-  font-size: 14px;
-  color: var(--text2);
-  margin-bottom: 48px;
+  flex: 1;
+  padding: 40px 32px 24px;
   text-align: center;
-  line-height: 1.6;
 }
 
-.login-tagline {
-  font-size: 18px;
-  font-weight: 600;
+.ob-emoji {
+  font-size: 72px;
+  margin-bottom: 32px;
+  display: block;
+  line-height: 1;
+}
+
+.ob-title {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.3;
   color: var(--text);
-  text-align: center;
-  line-height: 1.5;
+  margin-bottom: 16px;
+  letter-spacing: -0.5px;
+}
+
+.ob-desc {
+  font-size: 15px;
+  color: var(--text2);
+  line-height: 1.7;
   margin-bottom: 48px;
 }
 
-.google-btn {
+.ob-dots {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #fff;
-  color: #333;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+
+.ob-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border2);
+  transition: all 0.3s;
+}
+
+.ob-dot.active {
+  width: 24px;
+  border-radius: 4px;
+  background: var(--green);
+}
+
+.ob-bottom {
+  padding: 0 24px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#obNextBtn {
+  width: 100%;
+  background: var(--green);
+  color: #fff;
   border: none;
   border-radius: var(--radius);
-  padding: 14px 28px;
-  font-size: 15px;
-  font-weight: 600;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-}
-.google-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(0,0,0,0.4); }
-.google-btn img { width: 20px; }
-
-/* APP */
-#app {
-  display: none;
-  flex-direction: column;
-  height: 100vh;
-  max-width: 480px;
-  margin: 0 auto;
-  position: relative;
+  transition: opacity 0.2s;
 }
 
-#mainContent {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px 16px 90px;
-  scroll-behavior: smooth;
-}
-
-/* TAB NAV */
-.tab-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 480px;
-  background: rgba(14,14,14,0.95);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid var(--border);
-  display: flex;
-  padding: 8px 4px 12px;
-  z-index: 100;
-}
-
-.tab-btn {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
+#obSkip {
   background: none;
   border: none;
   color: var(--text3);
-  font-size: 10px;
+  font-size: 14px;
   font-family: inherit;
   cursor: pointer;
-  padding: 6px 2px;
-  border-radius: var(--radius-sm);
-  transition: all 0.2s;
+  padding: 8px;
 }
-.tab-btn .tab-icon { font-size: 20px; transition: transform 0.2s; }
-.tab-btn.active { color: var(--green); }
-.tab-btn.active .tab-icon { transform: translateY(-2px); }
 
-/* PAGE */
-.page-header {
+/* ── AUTH PANEL ── */
+#authPanel {
+  display: none;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 48px 24px 40px;
+  background: var(--white);
+}
+
+.auth-top {
   text-align: center;
-  padding: 12px 0 24px;
+  margin-bottom: 36px;
 }
-.logo-mark { font-size: 36px; margin-bottom: 8px; filter: drop-shadow(0 0 12px var(--green-glow)); }
-.page-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
-.page-sub { font-size: 13px; color: var(--text2); margin-top: 4px; }
 
-/* INPUT */
-.input-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
-.input-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
-.input-tab { flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text2); border-radius: var(--radius-sm); padding: 8px; font-size: 13px; font-family: inherit; cursor: pointer; transition: all 0.2s; }
-.input-tab.active { background: var(--green-dim); border-color: var(--green); color: var(--green); font-weight: 600; }
+.auth-logo {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 8px;
+}
 
-.main-input {
+.auth-brand {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--green);
+  letter-spacing: -0.5px;
+}
+
+.auth-sub {
+  font-size: 13px;
+  color: var(--text3);
+  margin-top: 4px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.auth-error {
+  background: #FFF0F0;
+  color: var(--danger);
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border: 1px solid #FFD0D0;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: var(--green);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  display: block;
+  text-align: left;
+  margin-bottom: 8px;
+}
+
+/* ── APP ── */
+#appScreen {
+  display: none;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg);
+}
+
+/* ── TOP NAV ── */
+.top-nav {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.top-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 0 8px;
+}
+
+.brand-icon { font-size: 18px; }
+.brand-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--green);
+  letter-spacing: -0.3px;
+}
+
+.top-tabs {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.top-tabs::-webkit-scrollbar { display: none; }
+
+.top-tab {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  color: var(--text3);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.top-tab.active {
+  color: var(--green);
+  border-bottom-color: var(--green);
+  font-weight: 700;
+}
+
+/* ── MAIN CONTENT ── */
+#mainContent {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px 16px 32px;
+}
+
+/* ── PAGE HERO ── */
+.page-hero { margin-bottom: 20px; }
+.hero-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+}
+.hero-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.25;
+  letter-spacing: -0.5px;
+}
+
+/* ── TOSS CARDS ── */
+.toss-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+
+/* ── FORMS ── */
+.form-group { margin-bottom: 16px; }
+.form-group:last-of-type { margin-bottom: 0; }
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+
+.toss-input {
   width: 100%;
-  background: var(--bg3);
-  border: 1px solid var(--border);
+  background: var(--bg);
+  border: 1.5px solid var(--border2);
   border-radius: var(--radius-sm);
   color: var(--text);
   font-family: inherit;
-  font-size: 14px;
-  padding: 12px;
+  font-size: 15px;
+  padding: 13px 14px;
+  transition: border-color 0.2s;
+  outline: none;
+  -webkit-appearance: none;
+}
+.toss-input:focus { border-color: var(--green); background: #fff; }
+.toss-input::placeholder { color: var(--text3); }
+.toss-select { cursor: pointer; }
+
+.toss-textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1.5px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  padding: 13px 14px;
   resize: none;
-  min-height: 100px;
+  min-height: 110px;
   line-height: 1.6;
+  outline: none;
   transition: border-color 0.2s;
 }
-.main-input:focus { outline: none; border-color: var(--green); }
-.url-input { min-height: auto; height: 44px; }
-.image-drop { border: 1.5px dashed var(--border); border-radius: var(--radius-sm); padding: 24px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
-.image-drop:hover { border-color: var(--green); }
-.drop-icon { font-size: 32px; display: block; margin-bottom: 8px; }
-.img-preview-wrap p { color: var(--text2); font-size: 13px; }
+.toss-textarea:focus { border-color: var(--green); background: #fff; }
+.toss-textarea::placeholder { color: var(--text3); }
+.toss-textarea.sm { min-height: 80px; }
 
-.analyze-btn {
-  width: 100%;
-  background: var(--green);
-  color: #000;
+/* ── BUTTONS ── */
+.toss-btn {
+  display: block;
   border: none;
   border-radius: var(--radius-sm);
-  padding: 14px;
+  padding: 14px 20px;
   font-size: 15px;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  text-align: center;
+  text-decoration: none;
+}
+.toss-btn:active { transform: scale(0.98); opacity: 0.9; }
+
+.toss-btn.primary { background: var(--green); color: #fff; }
+.toss-btn.secondary { background: var(--green-light); color: var(--green); }
+.toss-btn.ghost { background: none; color: var(--text2); border: 1.5px solid var(--border2); }
+.toss-btn.danger { background: #FFF0F0; color: var(--danger); border: 1px solid #FFD0D0; }
+.toss-btn.full-width { width: 100%; }
+.toss-btn.compact { padding: 8px 14px; font-size: 13px; width: auto; display: inline-block; }
+.toss-btn.sm-btn { flex: 1; padding: 10px 8px; font-size: 13px; }
+
+.action-row {
+  display: flex;
+  gap: 8px;
+}
+.action-row .half { flex: 1; }
+
+/* ── INPUT MODE TABS ── */
+.input-mode-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.mode-tab {
+  flex: 1;
+  background: var(--bg);
+  border: 1.5px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 9px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.mode-tab.active {
+  background: var(--green-light);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+/* ── IMAGE UPLOAD ── */
+.image-upload-area {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 32px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  background: var(--bg);
+}
+.image-upload-area:hover { border-color: var(--green); }
+.upload-icon { font-size: 36px; margin-bottom: 8px; }
+.upload-text { font-size: 14px; font-weight: 600; color: var(--text2); }
+.upload-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+/* ── HINTS ── */
+.section-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 10px;
+}
+.hint-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.hint-card {
+  background: var(--white);
+  border-radius: var(--radius-sm);
+  padding: 14px 12px;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  margin-top: 12px;
-  transition: all 0.2s;
-  letter-spacing: -0.2px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s;
 }
-.analyze-btn:hover { background: #00e0aa; transform: translateY(-1px); }
-.btn-icon { font-size: 18px; }
+.hint-card:active { transform: scale(0.97); }
+.hint-emoji { font-size: 20px; }
+.hint-text { font-size: 13px; font-weight: 600; color: var(--text2); }
 
-/* LOADING */
-.analysis-loading { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
-.loading-steps { display: flex; flex-direction: column; gap: 10px; }
-.loading-step { color: var(--text2); font-size: 14px; padding: 8px 12px; background: var(--bg3); border-radius: var(--radius-sm); transition: all 0.3s; }
-.loading-inline { text-align: center; color: var(--text2); padding: 32px; font-size: 14px; }
+/* ── LOADING ── */
+.loading-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.loading-spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--green-light);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.loading-steps { display: flex; flex-direction: column; gap: 8px; }
+.l-step {
+  font-size: 13px;
+  color: var(--text3);
+  padding: 8px 12px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  transition: all 0.3s;
+  border-left: 3px solid transparent;
+}
+.l-step.done {
+  color: var(--green);
+  background: var(--green-light);
+  border-left-color: var(--green);
+  font-weight: 600;
+}
+.loading-simple { font-size: 14px; color: var(--text2); padding: 24px; }
+.center-text { text-align: center; }
 
-/* RESULT */
-.result-header { text-align: center; padding: 16px 0 8px; }
-.result-product { font-size: 20px; font-weight: 700; color: var(--green); }
-.reliability-badge { display: inline-block; font-size: 11px; color: var(--warn); background: rgba(255,193,7,0.1); border: 1px solid rgba(255,193,7,0.3); border-radius: 20px; padding: 4px 12px; margin-top: 6px; }
+/* ── RESULTS ── */
+.result-name-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.result-name { font-size: 18px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
+.result-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--green-light);
+  color: var(--green);
+  border-radius: 20px;
+  padding: 4px 10px;
+}
 
-.result-cards { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; }
-.result-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
-.card-label { font-size: 12px; color: var(--green); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-.card-body { font-size: 14px; color: var(--text2); line-height: 1.6; }
-.opp-item { padding: 4px 0; color: var(--text); font-size: 14px; }
+.card-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.card-body-text { font-size: 14px; color: var(--text2); line-height: 1.7; }
 
-/* IDEAS */
-.ideas-section { margin: 16px 0; }
-.section-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
-.my-idea-box { background: var(--green-dim); border: 1px solid var(--green); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
-.my-idea-label { font-size: 12px; color: var(--green); font-weight: 600; margin-bottom: 8px; }
-.my-idea-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(0,200,150,0.3); border-radius: var(--radius-sm); color: var(--text); font-family: inherit; font-size: 14px; padding: 10px; resize: none; min-height: 80px; }
-.my-idea-input:focus { outline: none; border-color: var(--green); }
-.expand-btn { background: var(--green); color: #000; border: none; border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; margin-top: 8px; }
+.opp-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.opp-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.opp-text { font-size: 14px; color: var(--text); line-height: 1.5; }
 
-.expanded-idea-card { background: var(--bg2); border: 1px solid var(--green); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
-.first-step { margin-top: 8px; font-size: 13px; color: var(--green); font-weight: 600; }
+/* MY IDEA */
+.my-idea-hint { font-size: 13px; color: var(--text2); margin-bottom: 10px; line-height: 1.5; }
+.expanded-card { border: 1.5px solid var(--green); }
+.first-step-tag { font-size: 13px; color: var(--green); font-weight: 600; margin-top: 8px; }
 
-.ai-ideas-label { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
-.idea-card { display: flex; gap: 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
-.idea-num { width: 28px; height: 28px; background: var(--green-dim); border: 1px solid var(--green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--green); flex-shrink: 0; }
-.idea-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
-.idea-desc { font-size: 13px; color: var(--text2); line-height: 1.5; margin-bottom: 6px; }
-.idea-revenue { font-size: 12px; color: var(--green); font-weight: 600; }
+/* IDEA CARDS */
+.idea-card-item { border-left: 3px solid var(--green-light); }
+.idea-num-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.idea-num {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--green-light);
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.idea-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.idea-desc { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 8px; }
+.idea-revenue-tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+  background: var(--green-light);
+  border-radius: 6px;
+  padding: 4px 10px;
+}
 
-.reliability-note { display: flex; gap: 8px; font-size: 12px; color: var(--text3); background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; margin: 12px 0; }
-.rn-icon { flex-shrink: 0; }
+.reliability-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text3);
+  background: #FFFBF0;
+  border: 1px solid #FFE4A0;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+.reliability-strip span:first-child { font-weight: 700; color: var(--warn); }
 
-/* ACTION BTNS */
-.action-btns { display: flex; gap: 8px; margin: 12px 0; }
-.action-btn { flex: 1; border: none; border-radius: var(--radius-sm); padding: 12px 8px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.2s; }
-.action-btn.primary { background: var(--green); color: #000; }
-.action-btn.primary:hover { background: #00e0aa; }
-.action-btn.secondary { background: var(--bg2); color: var(--text); border: 1px solid var(--border); }
-.action-btn.secondary:hover { border-color: var(--green); color: var(--green); }
-.action-btn.danger { background: rgba(255,75,75,0.1); color: var(--danger); border: 1px solid rgba(255,75,75,0.3); }
-.action-btn.small { flex: none; padding: 8px 12px; font-size: 12px; }
+/* ── STATS ── */
+.stat-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.stat-box {
+  flex: 1;
+  background: var(--white);
+  border-radius: var(--radius-sm);
+  padding: 14px 12px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.stat-box.wide { flex: 1.4; }
+.stat-num { font-size: 22px; font-weight: 800; color: var(--green); letter-spacing: -0.5px; }
+.stat-num.small { font-size: 13px; font-weight: 700; padding-top: 4px; line-height: 1.3; }
+.stat-label { font-size: 11px; color: var(--text3); margin-top: 2px; }
 
-/* IDEAS LIST */
-.dashboard-row { display: flex; gap: 8px; margin-bottom: 16px; }
-.dash-card { flex: 1; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 8px; text-align: center; }
-.dash-num { font-size: 20px; font-weight: 700; color: var(--green); }
-.dash-label { font-size: 11px; color: var(--text2); margin-top: 2px; }
-
-.idea-list-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.2s; }
-.idea-list-card:hover { border-color: var(--green); }
-.idea-list-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
-.idea-list-name { font-size: 15px; font-weight: 600; }
-.idea-list-meta { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
-.badge-eval { font-size: 10px; background: var(--green-dim); color: var(--green); border: 1px solid var(--green); border-radius: 20px; padding: 2px 8px; }
+/* ── IDEA LIST ── */
+.idea-list-card { cursor: pointer; transition: box-shadow 0.2s; }
+.idea-list-card:active { box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
+.idea-list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.idea-list-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.idea-list-opp { font-size: 13px; color: var(--text3); line-height: 1.4; }
+.idea-list-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.pill-green {
+  font-size: 11px; font-weight: 700;
+  background: var(--green-light); color: var(--green);
+  border-radius: 20px; padding: 3px 8px;
+}
 .idea-date { font-size: 11px; color: var(--text3); }
-.idea-list-preview { font-size: 13px; color: var(--text2); }
-.idea-detail { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
-.detail-section { margin-bottom: 10px; font-size: 13px; color: var(--text2); line-height: 1.5; }
-.detail-section b { color: var(--text); display: block; margin-bottom: 4px; }
+.chevron { font-size: 18px; color: var(--text3); line-height: 1; }
+
+.idea-detail-panel { padding-top: 0; }
+.detail-divider { height: 1px; background: var(--border); margin: 14px 0; }
+.detail-row { margin-bottom: 10px; }
+.detail-label { font-size: 12px; font-weight: 700; color: var(--text3); margin-bottom: 3px; }
+.detail-val { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.detail-val.highlight { color: var(--text); font-weight: 600; }
 .detail-actions { display: flex; gap: 8px; margin-top: 12px; }
 
-/* EVAL */
-.eval-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
-.eval-desc { font-size: 14px; color: var(--text2); margin-bottom: 12px; }
-.profile-notice { font-size: 12px; color: var(--warn); background: rgba(255,193,7,0.08); border: 1px solid rgba(255,193,7,0.2); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; }
-.profile-notice a { color: var(--warn); }
+/* ── EVAL ── */
+.selected-item-bar { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.selected-label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; }
+.selected-name { font-size: 16px; font-weight: 700; color: var(--text); }
 
-.eval-grade-box { background: var(--bg2); border: 2px solid; border-radius: var(--radius); padding: 20px; text-align: center; margin-bottom: 20px; }
-.grade-letter { font-size: 56px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
-.grade-total { font-size: 18px; font-weight: 600; color: var(--text2); margin-bottom: 10px; }
-.grade-summary { font-size: 14px; color: var(--text2); line-height: 1.5; }
+.notice-card { display: flex; gap: 12px; align-items: flex-start; background: #FFFBF0; border: 1px solid #FFE4A0; }
+.notice-icon { font-size: 20px; flex-shrink: 0; }
+.notice-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.notice-desc { font-size: 13px; color: var(--text2); line-height: 1.5; }
 
-.score-list { margin: 16px 0; }
-.score-item { margin-bottom: 14px; }
-.score-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
-.score-label { font-size: 13px; font-weight: 600; }
-.score-val { font-size: 13px; font-weight: 700; }
-.score-bar { background: var(--bg3); border-radius: 4px; height: 6px; overflow: hidden; margin-bottom: 4px; }
-.score-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
-.score-reason { font-size: 12px; color: var(--text2); line-height: 1.4; }
+.eval-intro { text-align: center; }
+.eval-intro-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.eval-intro-items { display: flex; flex-direction: column; gap: 4px; }
+.eval-intro-item { font-size: 13px; color: var(--text2); }
+.eval-dot { margin: 0 6px; color: var(--text3); }
 
-.eval-insights { display: flex; flex-direction: column; gap: 8px; margin: 16px 0; }
-.insight-card { font-size: 13px; padding: 10px 14px; border-radius: var(--radius-sm); line-height: 1.5; }
-.insight-card.strength { background: rgba(0,200,150,0.08); border: 1px solid rgba(0,200,150,0.2); }
-.insight-card.weak { background: rgba(255,193,7,0.08); border: 1px solid rgba(255,193,7,0.2); }
-.insight-card.action { background: rgba(100,150,255,0.08); border: 1px solid rgba(100,150,255,0.2); }
-
-/* DRAFT */
-.draft-card { background: var(--bg2); border: 1px solid var(--green); border-radius: var(--radius); padding: 16px; margin-top: 16px; }
-.draft-header { font-size: 12px; color: var(--green); font-weight: 600; margin-bottom: 8px; letter-spacing: 0.5px; }
-.draft-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-.draft-oneliner { font-size: 14px; color: var(--green); font-style: italic; margin-bottom: 14px; }
-.draft-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
-.draft-row { display: flex; gap: 12px; font-size: 13px; }
-.dr-label { color: var(--text2); font-weight: 600; min-width: 36px; }
-.plan-title { font-size: 13px; font-weight: 600; color: var(--green); margin-bottom: 8px; }
-.plan-item { display: flex; gap: 12px; font-size: 13px; margin-bottom: 8px; color: var(--text2); }
-.plan-month { color: var(--green); font-weight: 600; min-width: 48px; flex-shrink: 0; }
-
-/* CASES */
-.case-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
-.case-card.success { border-left: 3px solid var(--green); }
-.case-card.fail { border-left: 3px solid var(--danger); }
-.case-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.case-name { font-size: 15px; font-weight: 700; }
-.case-badge { font-size: 11px; border-radius: 20px; padding: 3px 10px; }
-.badge-success { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
-.badge-fail { background: rgba(255,75,75,0.1); color: var(--danger); border: 1px solid rgba(255,75,75,0.3); }
-.case-row { font-size: 13px; color: var(--text2); margin-bottom: 6px; }
-.case-row b { color: var(--text); margin-right: 6px; }
-.case-insight { font-size: 13px; color: var(--green); background: var(--green-dim); border-radius: var(--radius-sm); padding: 8px 10px; margin-top: 8px; }
-
-/* SETTINGS */
-.settings-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
-.settings-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
-.settings-desc { font-size: 12px; color: var(--text2); margin-bottom: 14px; }
-.settings-user { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.user-avatar { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--green); }
-.user-name { font-size: 15px; font-weight: 600; }
-.user-email { font-size: 12px; color: var(--text2); }
-.logout-btn { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-family: inherit; cursor: pointer; }
-.danger-zone { border-color: rgba(255,75,75,0.3); }
-
-.profile-form { display: flex; flex-direction: column; gap: 10px; }
-.form-label { font-size: 12px; color: var(--text2); font-weight: 600; }
-.form-input, .form-select {
-  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm);
-  color: var(--text); font-family: inherit; font-size: 14px; padding: 10px 12px;
-  width: 100%; transition: border-color 0.2s;
+.grade-hero {
+  border-radius: var(--radius);
+  padding: 28px 20px;
+  text-align: center;
+  margin-bottom: 12px;
+  border: 1.5px solid;
 }
-.form-input:focus, .form-select:focus { outline: none; border-color: var(--green); }
-.form-select option { background: var(--bg3); }
+.grade-letter { font-size: 64px; font-weight: 800; line-height: 1; margin-bottom: 4px; letter-spacing: -2px; }
+.grade-score { font-size: 28px; font-weight: 800; line-height: 1; }
+.grade-max { font-size: 14px; color: var(--text3); margin-bottom: 14px; }
+.grade-summary { font-size: 14px; color: var(--text2); line-height: 1.6; }
 
-/* EMPTY */
-.empty-state { text-align: center; padding: 60px 20px; }
-.empty-icon { font-size: 48px; margin-bottom: 16px; }
-.empty-state p { color: var(--text2); font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+.score-card { padding: 14px 16px; }
+.score-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.score-label { font-size: 14px; font-weight: 600; color: var(--text); }
+.score-num { font-size: 18px; font-weight: 800; }
+.score-denom { font-size: 13px; font-weight: 500; color: var(--text3); }
+.score-bar-bg { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.score-bar-fill { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
+.score-reason { font-size: 13px; color: var(--text2); line-height: 1.5; }
 
-/* ERROR */
-.error-card { background: rgba(255,75,75,0.08); border: 1px solid rgba(255,75,75,0.3); border-radius: var(--radius); padding: 14px; color: var(--danger); font-size: 13px; margin: 10px 0; line-height: 1.5; }
+.insight-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; font-size: 14px; line-height: 1.5; }
+.insight-row.green { color: #006B4F; }
+.insight-row.yellow { color: #7A5100; }
+.insight-row.blue { color: #003D99; }
+.insight-icon { font-size: 16px; flex-shrink: 0; padding-top: 1px; }
+.insight-divider { height: 1px; background: var(--border); }
 
-/* TOAST */
+/* ── DRAFT ── */
+.draft-card {}
+.draft-biz-name { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; margin-bottom: 4px; }
+.draft-oneliner { font-size: 14px; color: var(--green); font-style: italic; font-weight: 600; margin-bottom: 0; }
+.draft-divider { height: 1px; background: var(--border); margin: 16px 0; }
+.draft-grid { display: flex; flex-direction: column; gap: 10px; }
+.draft-item { display: flex; gap: 12px; align-items: flex-start; }
+.draft-key { font-size: 12px; font-weight: 700; color: var(--text3); min-width: 36px; flex-shrink: 0; margin-top: 1px; }
+.draft-val { font-size: 14px; color: var(--text2); line-height: 1.5; }
+.draft-plan-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+.draft-plan-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
+.draft-plan-month { font-size: 12px; font-weight: 700; color: var(--green); min-width: 52px; flex-shrink: 0; margin-top: 2px; }
+.draft-plan-content { font-size: 13px; color: var(--text2); line-height: 1.5; }
+
+/* ── CASES ── */
+.case-card { border-left: 4px solid transparent; }
+.case-success { border-left-color: var(--green); }
+.case-fail { border-left-color: var(--danger); }
+.case-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
+.case-name { font-size: 15px; font-weight: 700; }
+.case-pills { display: flex; gap: 4px; flex-shrink: 0; flex-wrap: wrap; }
+.pill-country { font-size: 11px; background: var(--bg); color: var(--text2); border-radius: 20px; padding: 3px 8px; border: 1px solid var(--border2); }
+.pill-red { font-size: 11px; font-weight: 700; background: #FFF0F0; color: var(--danger); border-radius: 20px; padding: 3px 8px; }
+.case-detail-row { font-size: 13px; color: var(--text2); margin-bottom: 6px; line-height: 1.5; }
+.case-key { font-weight: 700; color: var(--text); margin-right: 6px; }
+.case-insight {
+  font-size: 13px; color: var(--green); font-weight: 600;
+  background: var(--green-light); border-radius: var(--radius-sm);
+  padding: 8px 12px; margin-top: 10px; line-height: 1.5;
+}
+
+/* ── SETTINGS ── */
+.user-profile-card { display: flex; align-items: center; gap: 14px; }
+.user-avatar-circle {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: 16px; font-weight: 700; color: var(--text); }
+.user-email { font-size: 13px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.logout-btn {
+  background: var(--bg);
+  border: 1.5px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text2);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.profile-notice-text { font-size: 13px; color: var(--text3); line-height: 1.5; }
+.danger-notice { font-size: 12px; color: var(--text3); text-align: center; margin-top: 8px; }
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align: center; padding: 60px 24px; }
+.empty-icon { font-size: 52px; margin-bottom: 16px; }
+.empty-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.empty-desc { font-size: 14px; color: var(--text3); line-height: 1.6; }
+
+/* ── ERROR STATE ── */
+.error-state { text-align: center; }
+.error-icon { font-size: 32px; margin-bottom: 8px; }
+.error-msg { font-size: 14px; font-weight: 600; color: var(--danger); }
+.error-detail { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+/* ── TOAST ── */
 .toast {
-  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
-  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
-  padding: 10px 20px; border-radius: 20px; font-size: 13px; z-index: 1000;
-  opacity: 0; transition: all 0.3s; white-space: nowrap; max-width: 90vw;
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--text);
+  color: #fff;
+  padding: 11px 20px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 9999;
+  opacity: 0;
+  transition: all 0.25s;
+  white-space: nowrap;
+  max-width: 90vw;
+  pointer-events: none;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-.toast.toast-success { border-color: var(--green); color: var(--green); }
-.toast.toast-error { border-color: var(--danger); color: var(--danger); }
+.toast.toast-error { background: var(--danger); }
+
+/* ── UTILS ── */
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+
+/* ── RESPONSIVE ── */
+@media (min-width: 480px) {
+  #onboardingScreen, #onboardingScreen #authPanel, #appScreen {
+    max-width: 480px;
+    margin: 0 auto;
+    box-shadow: 0 0 40px rgba(0,0,0,0.12);
+  }
+  body { background: #F0F0F0; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  #onboardingSlide { padding: 20px 32px 12px; }
+  .ob-emoji { font-size: 48px; margin-bottom: 16px; }
+  .ob-title { font-size: 22px; margin-bottom: 8px; }
+  .ob-desc { margin-bottom: 20px; }
+  .page-hero { margin-bottom: 12px; }
+  .hero-title { font-size: 22px; }
+  .toss-card { padding: 14px; }
+}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="loginScreen">
-  <div class="login-logo">🔍</div>
-  <div class="login-brand">MoneyLens</div>
-  <div class="login-sub">돈 벌 생각</div>
-  <div class="login-tagline">상품을 보는 눈이 달라지면<br>돈이 보인다</div>
-  <button class="google-btn" onclick="googleLogin()">
-    <img src="https://www.google.com/favicon.ico" alt="Google">
-    Google로 시작하기
-  </button>
+<!-- ONBOARDING -->
+<div id="onboardingScreen" class="screen">
+  <div id="onboardingSlide">
+    <span id="obEmoji" class="ob-emoji"></span>
+    <h1 id="obTitle" class="ob-title"></h1>
+    <p id="obDesc" class="ob-desc"></p>
+    <div class="ob-dots">
+      <div class="ob-dot"></div>
+      <div class="ob-dot"></div>
+      <div class="ob-dot"></div>
+    </div>
+  </div>
+  <div class="ob-bottom">
+    <button id="obNextBtn" onclick="nextOnboarding()"></button>
+    <button id="obSkip" onclick="skipOnboarding()">건너뛰기</button>
+  </div>
+  <div id="authPanel"></div>
 </div>
 
 <!-- APP -->
-<div id="app">
+<div id="appScreen" class="screen">
+  <header class="top-nav">
+    <div class="top-nav-brand">
+      <span class="brand-icon">🔍</span>
+      <span class="brand-name">MoneyLens</span>
+    </div>
+    <nav class="top-tabs">
+      <button class="top-tab active" data-tab="lens" onclick="renderPage('lens')">렌즈</button>
+      <button class="top-tab" data-tab="ideas" onclick="renderPage('ideas')">아이디어함</button>
+      <button class="top-tab" data-tab="eval" onclick="renderPage('eval')">평가실</button>
+      <button class="top-tab" data-tab="cases" onclick="renderPage('cases')">사례</button>
+      <button class="top-tab" data-tab="settings" onclick="renderPage('settings')">설정</button>
+    </nav>
+  </header>
   <div id="mainContent"></div>
-
-  <nav class="tab-nav">
-    <button class="tab-btn active" data-tab="lens" onclick="renderPage('lens')">
-      <span class="tab-icon">🔍</span>렌즈
-    </button>
-    <button class="tab-btn" data-tab="ideas" onclick="renderPage('ideas')">
-      <span class="tab-icon">💡</span>아이디어함
-    </button>
-    <button class="tab-btn" data-tab="eval" onclick="renderPage('eval')">
-      <span class="tab-icon">📊</span>평가실
-    </button>
-    <button class="tab-btn" data-tab="cases" onclick="renderPage('cases')">
-      <span class="tab-icon">📚</span>사례
-    </button>
-    <button class="tab-btn" data-tab="settings" onclick="renderPage('settings')">
-      <span class="tab-icon">⚙️</span>설정
-    </button>
-  </nav>
 </div>
 
 </body>
