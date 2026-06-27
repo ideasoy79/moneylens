@@ -3,370 +3,273 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>MoneyLens · 돈 벌 생각</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>MoneyLens</title>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#F4F6FA;--surface:#FFFFFF;--surface2:#F8F9FC;
-  --border:#ECEEF4;--border2:#DDE0EB;
+  --green:#05C072;--green2:#03A861;--greenbg:#EDFBF4;--greenmid:rgba(5,192,114,0.2);
+  --indigo:#4F6EF7;--indigobg:#EEF1FE;
+  --amber:#F59E0B;--amberbg:#FFFBEB;
+  --danger:#EF4444;--dangerbg:#FEF2F2;
   --text:#0F1117;--text2:#5A607A;--text3:#9BA3BF;
-  --green:#05C072;--green2:#03A861;--green-bg:#EDFBF4;--green-mid:rgba(5,192,114,0.18);
-  --indigo:#4F6EF7;--indigo-bg:#EEF1FE;
-  --amber:#F59E0B;--amber-bg:#FFFBEB;
-  --danger:#EF4444;--danger-bg:#FEF2F2;
-  --radius:18px;--radius-sm:12px;--radius-xs:8px;
-  --shadow-sm:0 1px 4px rgba(15,17,23,0.06);
-  --shadow:0 4px 16px rgba(15,17,23,0.08);
+  --bg:#F4F6FA;--surface:#fff;--surface2:#F8F9FC;
+  --border:#ECEEF4;--border2:#DDE0EB;
+  --r:16px;--rsm:12px;--rxs:8px;
+  --sh:0 2px 8px rgba(15,17,23,0.07);
 }
-html,body{height:100%;font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);font-size:15px;-webkit-font-smoothing:antialiased;overflow:hidden}
-.screen{display:none;height:100vh}
-.screen.active{display:flex;flex-direction:column}
+html,body{height:100%;font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:15px;-webkit-font-smoothing:antialiased;overflow:hidden}
+
+/* SCREENS */
+.scr{display:none;height:100vh;flex-direction:column}
+.scr.on{display:flex}
 
 /* ONBOARDING */
-#onboardingScreen{background:var(--surface);align-items:center;justify-content:space-between}
-.ob-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 32px 24px;text-align:center;width:100%}
-.ob-icon-wrap{width:100px;height:100px;border-radius:28px;background:var(--green-bg);display:flex;align-items:center;justify-content:center;margin-bottom:36px;box-shadow:0 8px 32px rgba(5,192,114,0.2)}
-.ob-icon-wrap svg{width:48px;height:48px;stroke:var(--green)}
-.ob-title{font-size:28px;font-weight:800;line-height:1.3;letter-spacing:-0.5px;color:var(--text);margin-bottom:14px}
-.ob-desc{font-size:15px;color:var(--text2);line-height:1.75;max-width:300px}
-.ob-footer{width:100%;padding:0 24px 48px}
-.ob-dots{display:flex;gap:6px;justify-content:center;margin-bottom:28px}
-.ob-dot{height:6px;border-radius:3px;background:var(--border2);transition:all 0.35s;width:6px}
-.ob-dot.active{width:22px;background:var(--green)}
-#obNextBtn{width:100%;padding:16px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:14px;transition:all 0.2s}
-#obNextBtn:active{transform:scale(0.98);background:var(--green2)}
-#obSkip{display:block;text-align:center;background:none;border:none;color:var(--text3);font-size:14px;font-family:inherit;cursor:pointer;padding:6px;width:100%}
+#scrOb{background:#fff;align-items:stretch;justify-content:space-between}
+.ob-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 32px 16px;text-align:center}
+.ob-icon{width:96px;height:96px;border-radius:28px;background:var(--greenbg);display:flex;align-items:center;justify-content:center;margin:0 auto 32px;box-shadow:0 8px 28px rgba(5,192,114,0.18)}
+.ob-icon svg{width:44px;height:44px;stroke:var(--green);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ob-h{font-size:26px;font-weight:800;line-height:1.3;letter-spacing:-0.5px;margin-bottom:12px}
+.ob-p{font-size:15px;color:var(--text2);line-height:1.75}
+.ob-foot{padding:0 24px 44px}
+.ob-dots{display:flex;gap:6px;justify-content:center;margin-bottom:24px}
+.dot{width:6px;height:6px;border-radius:3px;background:var(--border2);transition:all 0.3s}
+.dot.on{width:22px;background:var(--green)}
+.ob-btn{width:100%;padding:15px;background:var(--green);color:#fff;border:none;border-radius:var(--rsm);font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:12px}
+.ob-skip{width:100%;padding:8px;background:none;border:none;color:var(--text3);font-size:14px;font-family:inherit;cursor:pointer}
 
 /* AUTH */
-#authScreen{background:var(--surface);overflow-y:auto}
-.auth-wrap{padding:52px 24px 40px;width:100%;max-width:420px;margin:0 auto}
-.auth-logo-wrap{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.auth-logo-icon{width:40px;height:40px;border-radius:12px;background:var(--green-bg);display:flex;align-items:center;justify-content:center}
-.auth-logo-icon svg{width:22px;height:22px;stroke:var(--green)}
-.auth-brand{font-size:20px;font-weight:800;color:var(--green);letter-spacing:-0.3px}
-.auth-heading{font-size:26px;font-weight:800;color:var(--text);letter-spacing:-0.5px;margin-bottom:6px;margin-top:28px}
-.auth-sub{font-size:14px;color:var(--text2);margin-bottom:32px}
-.form-group{margin-bottom:16px}
-.form-label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:7px}
-.ml-input{width:100%;padding:14px 16px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:15px;outline:none;transition:all 0.2s;-webkit-appearance:none}
-.ml-input:focus{border-color:var(--green);background:#fff}
-.ml-input::placeholder{color:var(--text3)}
-.auth-error{display:none;background:var(--danger-bg);border:1px solid #FECACA;border-radius:var(--radius-xs);color:var(--danger);font-size:13px;font-weight:500;padding:10px 14px;margin-bottom:16px;line-height:1.5}
-.btn-primary{width:100%;padding:15px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.2s;margin-bottom:12px}
-.btn-primary:active{transform:scale(0.98);background:var(--green2)}
-.btn-ghost{width:100%;padding:14px;background:none;border:1.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.2s}
-.btn-ghost:hover{border-color:var(--green);color:var(--green)}
-.back-link{display:flex;align-items:center;gap:6px;color:var(--text2);font-size:14px;font-weight:600;background:none;border:none;font-family:inherit;cursor:pointer;padding:0;margin-bottom:28px}
-.back-link svg{width:16px;height:16px;stroke:var(--text2)}
+#scrAuth{background:#fff;overflow-y:auto}
+.auth-inner{padding:48px 24px 40px;max-width:420px;margin:0 auto;width:100%}
+.auth-logo{display:flex;align-items:center;gap:8px;margin-bottom:28px}
+.auth-logo-box{width:36px;height:36px;border-radius:10px;background:var(--greenbg);display:flex;align-items:center;justify-content:center}
+.auth-logo-box svg{width:18px;height:18px;stroke:var(--green);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.auth-logo-name{font-size:18px;font-weight:800;color:var(--green)}
+.auth-h{font-size:24px;font-weight:800;margin-bottom:4px;letter-spacing:-0.4px}
+.auth-sub{font-size:14px;color:var(--text2);margin-bottom:28px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.inp{width:100%;padding:13px 14px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--rsm);color:var(--text);font-size:15px;font-family:inherit;outline:none;-webkit-appearance:none}
+.inp:focus{border-color:var(--green);background:#fff}
+.inp::placeholder{color:var(--text3)}
+.err-box{display:none;background:var(--dangerbg);border:1px solid #FECACA;border-radius:var(--rxs);color:var(--danger);font-size:13px;padding:10px 14px;margin-bottom:14px;line-height:1.5}
+.btn-pri{width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--rsm);font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:10px}
+.btn-pri:active{background:var(--green2)}
+.btn-sec{width:100%;padding:13px;background:none;border:1.5px solid var(--border2);border-radius:var(--rsm);color:var(--text2);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer}
+.btn-sec:active{border-color:var(--green);color:var(--green)}
+.back-btn{display:flex;align-items:center;gap:4px;background:none;border:none;color:var(--text2);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;padding:0;margin-bottom:24px}
 
 /* APP */
-#appScreen{background:var(--bg);overflow:hidden}
-.top-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;flex-shrink:0;box-shadow:var(--shadow-sm)}
-.nav-brand-row{display:flex;align-items:center;gap:8px;padding:12px 0 8px}
-.nav-brand-icon{width:28px;height:28px;border-radius:8px;background:var(--green-bg);display:flex;align-items:center;justify-content:center}
-.nav-brand-icon svg{width:16px;height:16px;stroke:var(--green)}
-.nav-brand-name{font-size:16px;font-weight:800;color:var(--text);letter-spacing:-0.3px}
-.nav-brand-sub{font-size:12px;color:var(--text3);margin-left:2px}
-.top-tabs{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:2px}
-.top-tabs::-webkit-scrollbar{display:none}
-.top-tab{flex-shrink:0;padding:10px 14px;background:none;border:none;border-bottom:2.5px solid transparent;color:var(--text3);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.2s;white-space:nowrap;display:flex;align-items:center;gap:5px}
-.top-tab svg{width:14px;height:14px;stroke:currentColor}
-.top-tab.active{color:var(--green);border-bottom-color:var(--green)}
-#mainContent{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 16px 36px}
-
-/* PAGE */
-.page-hero{margin-bottom:22px}
-.hero-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--green);background:var(--green-bg);border-radius:20px;padding:4px 10px;margin-bottom:8px;letter-spacing:0.3px}
-.hero-badge svg{width:11px;height:11px;stroke:var(--green)}
-.hero-title{font-size:26px;font-weight:800;color:var(--text);line-height:1.25;letter-spacing:-0.6px}
+#scrApp{background:var(--bg)}
+.topnav{background:#fff;border-bottom:1px solid var(--border);padding:0 16px;flex-shrink:0;box-shadow:var(--sh)}
+.brand-row{display:flex;align-items:center;gap:7px;padding:11px 0 8px}
+.brand-box{width:26px;height:26px;border-radius:7px;background:var(--greenbg);display:flex;align-items:center;justify-content:center}
+.brand-box svg{width:14px;height:14px;stroke:var(--green);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.brand-name{font-size:15px;font-weight:800;color:var(--text)}
+.brand-tag{font-size:12px;color:var(--text3)}
+.tabs{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:0}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:9px 13px;background:none;border:none;border-bottom:2.5px solid transparent;color:var(--text3);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;transition:all 0.2s}
+.tab.on{color:var(--green);border-bottom-color:var(--green)}
+#main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 16px 36px}
 
 /* CARDS */
-.ml-card{background:var(--surface);border-radius:var(--radius);padding:18px 16px;margin-bottom:12px;box-shadow:var(--shadow-sm);border:1px solid var(--border)}
-.ml-card.accent{border-color:var(--green);border-width:1.5px}
-.card-eyebrow{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px}
-.card-eyebrow svg{width:12px;height:12px;stroke:var(--green)}
-.card-body{font-size:14px;color:var(--text2);line-height:1.7}
+.card{background:#fff;border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:var(--sh);border:1px solid var(--border)}
+.card.green-border{border-color:var(--green);border-width:1.5px}
+.card.amber-bg{background:var(--amberbg);border-color:#FDE68A}
+.clabel{font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:7px}
+.cbody{font-size:14px;color:var(--text2);line-height:1.7}
 
-/* MODE TABS */
-.mode-tabs{display:flex;gap:6px;margin-bottom:14px}
-.mode-tab{flex:1;padding:10px 8px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--radius-xs);color:var(--text2);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:5px}
-.mode-tab svg{width:13px;height:13px;stroke:currentColor}
-.mode-tab.active{background:var(--green-bg);border-color:var(--green);color:var(--green)}
-
-/* INPUTS */
-.ml-textarea{width:100%;padding:13px 14px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:15px;resize:none;min-height:108px;line-height:1.65;outline:none;transition:all 0.2s;-webkit-appearance:none}
-.ml-textarea:focus{border-color:var(--green);background:#fff}
-.ml-textarea::placeholder{color:var(--text3)}
-.ml-textarea.sm{min-height:80px}
-.ml-input-field{width:100%;padding:13px 14px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:15px;outline:none;transition:all 0.2s;-webkit-appearance:none}
-.ml-input-field:focus{border-color:var(--green);background:#fff}
-.ml-input-field::placeholder{color:var(--text3)}
-select.ml-input-field{cursor:pointer}
-
-/* IMAGE UPLOAD */
-.img-drop{border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:32px 16px;text-align:center;cursor:pointer;background:var(--surface2);transition:all 0.2s}
-.img-drop:hover{border-color:var(--green);background:var(--green-bg)}
-.img-drop svg{width:32px;height:32px;stroke:var(--text3);display:block;margin:0 auto 8px}
-.img-drop-text{font-size:14px;font-weight:600;color:var(--text2)}
-.img-drop-sub{font-size:12px;color:var(--text3);margin-top:4px}
-
-/* BUTTONS */
-.btn-full{width:100%;padding:15px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;letter-spacing:-0.2px}
-.btn-full svg{width:16px;height:16px;stroke:currentColor}
-.btn-full:active{transform:scale(0.98);background:var(--green2)}
-.btn-full.secondary{background:var(--green-bg);color:var(--green);border:1.5px solid var(--green-mid)}
-.btn-full.secondary:active{background:#d4f5e7}
-.btn-full.outline{background:none;color:var(--text2);border:1.5px solid var(--border2)}
-.btn-full.danger-btn{background:var(--danger-bg);color:var(--danger);border:1px solid #FECACA}
-.btn-row{display:flex;gap:8px;margin-top:14px}
-.btn-row .btn-full{margin-top:0}
-.btn-sm{padding:9px 14px;border-radius:var(--radius-xs);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:5px;border:none}
-.btn-sm svg{width:13px;height:13px;stroke:currentColor}
-.btn-sm.green{background:var(--green-bg);color:var(--green)}
-.btn-sm.red{background:var(--danger-bg);color:var(--danger)}
-
-/* AI GUIDE */
-.ai-guide-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-top:12px}
-.ai-guide-title{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px}
-.ai-guide-title svg{width:13px;height:13px;stroke:var(--text2)}
-.ai-guide-steps{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
-.ai-guide-step{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2)}
-.step-num{width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.ai-guide-links{display:flex;gap:8px;flex-wrap:wrap}
-.ai-link{display:inline-block;font-size:12px;font-weight:700;color:var(--indigo);background:var(--indigo-bg);border-radius:20px;padding:5px 12px;text-decoration:none;transition:opacity 0.2s}
-.ai-link:active{opacity:0.7}
-.ai-photo-note{font-size:12px;color:var(--text3);margin-top:10px;padding-top:10px;border-top:1px solid var(--border);line-height:1.5}
-.paste-hint{font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.5}
+/* PAGE HERO */
+.hero{margin-bottom:20px}
+.hero-tag{display:inline-block;font-size:11px;font-weight:700;color:var(--green);background:var(--greenbg);border-radius:20px;padding:4px 10px;margin-bottom:8px}
+.hero-h{font-size:25px;font-weight:800;line-height:1.25;letter-spacing:-0.5px}
 
 /* SECTION LABEL */
-.section-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;display:flex;align-items:center;gap:5px}
-.section-label svg{width:11px;height:11px;stroke:var(--text3)}
+.slabel{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:10px}
+
+/* BUTTONS */
+.btn-g{width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--rsm);font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:12px}
+.btn-g:active{background:var(--green2)}
+.btn-gs{width:100%;padding:13px;background:var(--greenbg);color:var(--green);border:1.5px solid var(--greenmid);border-radius:var(--rsm);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:10px}
+.btn-outline{width:100%;padding:13px;background:none;border:1.5px solid var(--border2);border-radius:var(--rsm);color:var(--text2);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:10px}
+.btn-danger{width:100%;padding:13px;background:var(--dangerbg);color:var(--danger);border:1px solid #FECACA;border-radius:var(--rsm);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:10px}
+.btn-sm-g{padding:9px 13px;background:var(--greenbg);color:var(--green);border:none;border-radius:var(--rxs);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
+.btn-sm-r{padding:9px 13px;background:var(--dangerbg);color:var(--danger);border:none;border-radius:var(--rxs);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
+.btn-row{display:flex;gap:8px;margin-top:12px}
+.btn-row .btn-g,.btn-row .btn-gs{margin-top:0;flex:1}
+
+/* MODE TABS */
+.mtabs{display:flex;gap:6px;margin-bottom:12px}
+.mtab{flex:1;padding:9px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--rxs);color:var(--text2);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.2s}
+.mtab.on{background:var(--greenbg);border-color:var(--green);color:var(--green)}
+
+/* INPUTS */
+.ta{width:100%;padding:12px 13px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--rsm);color:var(--text);font-family:inherit;font-size:14px;resize:none;min-height:110px;line-height:1.65;outline:none;-webkit-appearance:none}
+.ta:focus{border-color:var(--green);background:#fff}
+.ta::placeholder{color:var(--text3)}
+.ta.sm{min-height:80px}
+.ta.md{min-height:150px}
+.ifield{width:100%;padding:12px 13px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--rsm);color:var(--text);font-family:inherit;font-size:14px;outline:none;-webkit-appearance:none}
+.ifield:focus{border-color:var(--green);background:#fff}
+.ifield::placeholder{color:var(--text3)}
+
+/* IMG DROP */
+.imgdrop{border:2px dashed var(--border2);border-radius:var(--rsm);padding:28px 16px;text-align:center;cursor:pointer;background:var(--surface2)}
+.imgdrop:active{border-color:var(--green)}
+.imgdrop-t{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:4px}
+.imgdrop-s{font-size:12px;color:var(--text3)}
+
+/* AI GUIDE */
+.ai-guide{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:14px;margin-top:12px}
+.ai-guide-t{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px}
+.ai-step{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);margin-bottom:7px}
+.ai-step-n{width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ai-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.ai-link{display:inline-block;font-size:12px;font-weight:700;color:var(--indigo);background:var(--indigobg);border-radius:20px;padding:5px 12px;text-decoration:none}
+.ai-photo{font-size:12px;color:var(--text3);margin-top:10px;padding-top:10px;border-top:1px solid var(--border);line-height:1.5}
+.paste-hint{font-size:13px;color:var(--text2);margin-bottom:8px;line-height:1.5}
 
 /* HINTS */
-.hint-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
-.hint-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;display:flex;align-items:center;gap:8px;cursor:pointer;box-shadow:var(--shadow-sm);transition:all 0.15s}
-.hint-card:active{transform:scale(0.97);border-color:var(--green)}
-.hint-emoji{font-size:18px}
-.hint-text{font-size:12px;font-weight:600;color:var(--text2);line-height:1.3}
-
-/* LOADING */
-.spinner{width:20px;height:20px;border:2.5px solid var(--green-bg);border-top-color:var(--green);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-inline{text-align:center;padding:28px 16px;font-size:14px;color:var(--text2);display:flex;align-items:center;justify-content:center;gap:8px}
+.hgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.hcard{background:#fff;border:1px solid var(--border);border-radius:var(--rsm);padding:12px;display:flex;align-items:center;gap:8px;cursor:pointer;box-shadow:var(--sh)}
+.hcard:active{border-color:var(--green)}
+.hemoji{font-size:18px}
+.htxt{font-size:12px;font-weight:600;color:var(--text2);line-height:1.3}
 
 /* RESULT */
-.result-title-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.result-product-name{font-size:20px;font-weight:800;letter-spacing:-0.4px}
-.result-tag{font-size:11px;font-weight:700;background:var(--green-bg);color:var(--green);border-radius:20px;padding:4px 10px}
-.opp-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:9px}
-.opp-bullet{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:5px}
-.opp-text{font-size:14px;color:var(--text);line-height:1.55}
-.idea-item{display:flex;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;box-shadow:var(--shadow-sm);border-left:3px solid var(--green-mid)}
-.idea-idx{width:26px;height:26px;border-radius:50%;background:var(--green-bg);color:var(--green);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.idea-body{flex:1}
-.idea-title{font-size:14px;font-weight:700;margin-bottom:5px}
-.idea-desc{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:7px}
-.revenue-tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--green2);background:var(--green-bg);border-radius:6px;padding:3px 9px}
-.revenue-tag svg{width:11px;height:11px;stroke:var(--green2)}
-.reliability-strip{background:var(--amber-bg);border:1px solid #FDE68A;border-radius:var(--radius-xs);padding:10px 14px;font-size:12px;color:#92400E;margin:12px 0;display:flex;align-items:flex-start;gap:6px;line-height:1.5}
-.reliability-strip svg{width:13px;height:13px;stroke:var(--amber);flex-shrink:0;margin-top:1px}
-.my-idea-label{font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.5}
+.rtitle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.rname{font-size:19px;font-weight:800;letter-spacing:-0.4px}
+.rtag{font-size:11px;font-weight:700;background:var(--greenbg);color:var(--green);border-radius:20px;padding:4px 10px}
+.opp-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+.opp-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:5px}
+.opp-txt{font-size:14px;line-height:1.55}
+.idea-item{display:flex;gap:11px;background:#fff;border:1px solid var(--border);border-radius:var(--rsm);padding:13px;margin-bottom:10px;box-shadow:var(--sh)}
+.idea-n{width:26px;height:26px;border-radius:50%;background:var(--greenbg);color:var(--green);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.idea-b .ititle{font-size:14px;font-weight:700;margin-bottom:5px}
+.idea-b .idesc{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:6px}
+.idea-b .irev{font-size:12px;font-weight:600;color:var(--green2);background:var(--greenbg);border-radius:5px;padding:3px 8px;display:inline-block}
+.warn-strip{background:var(--amberbg);border:1px solid #FDE68A;border-radius:var(--rxs);padding:10px 13px;font-size:12px;color:#92400E;margin:12px 0;line-height:1.5}
 
 /* STATS */
-.stat-row{display:flex;gap:8px;margin-bottom:16px}
-.stat-box{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 10px;text-align:center;box-shadow:var(--shadow-sm)}
-.stat-num{font-size:22px;font-weight:800;color:var(--green);letter-spacing:-0.5px}
-.stat-num.sm{font-size:12px;font-weight:700;padding-top:5px;line-height:1.4}
-.stat-label{font-size:11px;color:var(--text3);margin-top:3px}
+.srow{display:flex;gap:8px;margin-bottom:14px}
+.sbox{flex:1;background:#fff;border:1px solid var(--border);border-radius:var(--rsm);padding:13px 10px;text-align:center;box-shadow:var(--sh)}
+.snum{font-size:21px;font-weight:800;color:var(--green)}
+.snum.sm{font-size:12px;font-weight:700;padding-top:4px;line-height:1.4}
+.slbl{font-size:11px;color:var(--text3);margin-top:3px}
 
 /* IDEA LIST */
-.idea-list-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;box-shadow:var(--shadow-sm);cursor:pointer;transition:border-color 0.2s}
-.idea-list-card:active{border-color:var(--green)}
-.ilc-main{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-.ilc-name{font-size:15px;font-weight:700;margin-bottom:4px}
-.ilc-preview{font-size:13px;color:var(--text3);line-height:1.4}
-.ilc-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
-.pill{font-size:11px;font-weight:700;border-radius:20px;padding:3px 9px}
-.pill.green{background:var(--green-bg);color:var(--green)}
-.pill.gray{background:var(--bg);color:var(--text3);border:1px solid var(--border2)}
-.pill.red{background:var(--danger-bg);color:var(--danger)}
-.date-text{font-size:11px;color:var(--text3)}
-.chevron-icon svg{width:16px;height:16px;stroke:var(--text3)}
-.detail-panel{display:none}
-.detail-divider{height:1px;background:var(--border);margin:14px 0}
-.detail-row{margin-bottom:10px}
-.detail-key{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:3px}
-.detail-val{font-size:13px;color:var(--text2);line-height:1.55}
-.detail-val.hl{color:var(--text);font-weight:600}
-.detail-actions{display:flex;gap:8px;margin-top:14px}
+.icard{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:15px;margin-bottom:10px;box-shadow:var(--sh);cursor:pointer}
+.icard:active{border-color:var(--green)}
+.ic-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.ic-name{font-size:15px;font-weight:700;margin-bottom:4px}
+.ic-prev{font-size:13px;color:var(--text3);line-height:1.4}
+.ic-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.badge{font-size:11px;font-weight:700;border-radius:20px;padding:3px 8px}
+.badge.g{background:var(--greenbg);color:var(--green)}
+.badge.gr{background:var(--bg);color:var(--text3);border:1px solid var(--border2)}
+.ic-date{font-size:11px;color:var(--text3)}
+.ic-detail{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.dk{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:3px}
+.dv{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px}
+.dv.hl{color:var(--text);font-weight:600}
+.dact{display:flex;gap:8px;margin-top:10px}
 
 /* EVAL */
-.selected-bar{background:var(--green-bg);border:1.5px solid var(--green-mid);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
-.selected-bar svg{width:16px;height:16px;stroke:var(--green);flex-shrink:0}
-.selected-bar-inner{flex:1}
-.selected-label{font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase}
-.selected-name{font-size:14px;font-weight:700;color:var(--text);margin-top:2px}
-.notice-card{display:flex;gap:12px;align-items:flex-start;background:var(--amber-bg);border:1px solid #FDE68A;border-radius:var(--radius-sm);padding:14px;margin-bottom:12px}
-.notice-icon svg{width:18px;height:18px;stroke:var(--amber)}
-.notice-title{font-size:13px;font-weight:700;margin-bottom:3px}
-.notice-desc{font-size:12px;color:var(--text2);line-height:1.5}
-.notice-link{background:none;border:none;color:var(--amber);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;padding:0;margin-top:6px;display:block;text-decoration:underline}
-.eval-meta-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:12px;text-align:center}
-.eval-meta-title{font-size:14px;font-weight:700;margin-bottom:8px}
-.eval-meta-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
-.eval-meta-tag{font-size:12px;font-weight:600;color:var(--indigo);background:var(--indigo-bg);border-radius:20px;padding:4px 10px}
-.grade-hero{border-radius:var(--radius);padding:28px 20px;text-align:center;margin-bottom:14px;border:1.5px solid}
-.grade-letter{font-size:72px;font-weight:800;line-height:1;letter-spacing:-2px}
-.grade-pts{font-size:22px;font-weight:700;margin-top:4px}
-.grade-pts-max{font-size:13px;color:var(--text3)}
-.grade-summary{font-size:14px;color:var(--text2);line-height:1.65;margin-top:12px}
-.score-card{padding:14px 16px}
-.score-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.score-label-text{font-size:14px;font-weight:600}
-.score-pts{font-size:18px;font-weight:800}
-.score-pts-max{font-size:12px;font-weight:500;color:var(--text3)}
-.score-bar-bg{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-bottom:8px}
-.score-bar-fill{height:100%;border-radius:3px;transition:width 1s ease}
-.score-reason-text{font-size:13px;color:var(--text2);line-height:1.5}
-.insight-item{display:flex;gap:10px;align-items:flex-start;padding:12px 0;font-size:14px;line-height:1.55}
-.insight-icon svg{width:16px;height:16px;flex-shrink:0}
-.insight-divider{height:1px;background:var(--border)}
-
-/* DRAFT / CASES */
-.draft-name{font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:3px}
-.draft-liner{font-size:14px;color:var(--green);font-weight:600;font-style:italic;margin-bottom:16px}
-.draft-kv{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}
-.draft-k{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;min-width:36px;flex-shrink:0;margin-top:2px}
-.draft-v{font-size:14px;color:var(--text2);line-height:1.5}
-.draft-plan-row{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}
-.draft-month{font-size:11px;font-weight:700;color:var(--green);min-width:52px;flex-shrink:0;margin-top:2px}
-.case-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow-sm);border-left:4px solid transparent}
-.case-card.success{border-left-color:var(--green)}
-.case-card.fail{border-left-color:var(--danger)}
-.case-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px}
-.case-name{font-size:15px;font-weight:700}
-.case-pills{display:flex;gap:4px;flex-shrink:0}
-.case-row{font-size:13px;color:var(--text2);margin-bottom:7px;line-height:1.5;display:flex;gap:6px}
-.case-key{font-weight:700;color:var(--text);flex-shrink:0}
-.case-insight{font-size:13px;font-weight:600;color:var(--green2);background:var(--green-bg);border-radius:var(--radius-xs);padding:9px 12px;margin-top:10px;line-height:1.5}
+.selbar{background:var(--greenbg);border:1.5px solid var(--greenmid);border-radius:var(--rsm);padding:12px 14px;margin-bottom:12px}
+.selbar-lbl{font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;margin-bottom:3px}
+.selbar-name{font-size:14px;font-weight:700}
+.notice{display:flex;gap:11px;align-items:flex-start;background:var(--amberbg);border:1px solid #FDE68A;border-radius:var(--rsm);padding:13px;margin-bottom:12px}
+.notice-t{font-size:13px;font-weight:700;margin-bottom:3px}
+.notice-d{font-size:12px;color:var(--text2);line-height:1.5}
+.notice-a{background:none;border:none;color:var(--amber);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;padding:0;margin-top:6px;display:block;text-decoration:underline}
+.etags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.etag{font-size:12px;font-weight:600;color:var(--indigo);background:var(--indigobg);border-radius:20px;padding:4px 10px}
+.grade-box{border-radius:var(--r);padding:26px 20px;text-align:center;margin-bottom:12px;border:1.5px solid}
+.grade-ltr{font-size:68px;font-weight:800;line-height:1;letter-spacing:-2px}
+.grade-pts{font-size:20px;font-weight:700;margin-top:4px}
+.grade-max{font-size:13px;color:var(--text3)}
 
 /* SETTINGS */
-.profile-card{display:flex;align-items:center;gap:14px}
-.avatar-circle{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--green),var(--indigo));color:#fff;font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.profile-name{font-size:16px;font-weight:700}
-.logout-btn{margin-left:auto;background:var(--bg);border:1.5px solid var(--border2);border-radius:var(--radius-xs);padding:8px 14px;font-size:13px;font-weight:600;font-family:inherit;color:var(--text2);cursor:pointer;flex-shrink:0;display:flex;align-items:center;gap:5px}
-.logout-btn svg{width:13px;height:13px;stroke:var(--text2)}
-.profile-hint{font-size:13px;color:var(--text3);line-height:1.55;margin-bottom:16px}
-.danger-notice{font-size:12px;color:var(--text3);text-align:center;margin-top:8px}
+.pcard{display:flex;align-items:center;gap:13px}
+.avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--green),var(--indigo));color:#fff;font-size:19px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pname{font-size:15px;font-weight:700}
+.pemail{font-size:13px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logout-btn{margin-left:auto;background:var(--bg);border:1.5px solid var(--border2);border-radius:var(--rxs);padding:7px 13px;font-size:13px;font-weight:600;font-family:inherit;color:var(--text2);cursor:pointer;flex-shrink:0}
+.fgroup{margin-bottom:14px}
+.fgroup label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.danger-note{font-size:12px;color:var(--text3);text-align:center;margin-top:8px}
 
-/* EMPTY / ERROR */
-.empty-state{text-align:center;padding:56px 24px}
-.empty-icon{width:72px;height:72px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
-.empty-icon svg{width:32px;height:32px;stroke:var(--text3)}
-.empty-title{font-size:17px;font-weight:700;margin-bottom:8px}
-.empty-desc{font-size:14px;color:var(--text3);line-height:1.65}
-.empty-btn{display:inline-flex;align-items:center;gap:6px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);padding:12px 24px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:20px}
-.empty-btn svg{width:14px;height:14px;stroke:#fff}
-.error-state{text-align:center;padding:20px 16px}
-.error-state svg{width:28px;height:28px;stroke:var(--danger);display:block;margin:0 auto 8px}
-.error-msg{font-size:14px;font-weight:600;color:var(--danger)}
+/* EMPTY */
+.empty{text-align:center;padding:54px 24px}
+.empty-icon{width:68px;height:68px;border-radius:18px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.empty-icon svg{width:30px;height:30px;stroke:var(--text3);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.empty-h{font-size:16px;font-weight:700;margin-bottom:7px}
+.empty-d{font-size:14px;color:var(--text3);line-height:1.65}
+.empty-btn{display:inline-block;background:var(--green);color:#fff;border:none;border-radius:var(--rsm);padding:11px 22px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:18px}
 
 /* TOAST */
-.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--text);color:#fff;padding:11px 20px;border-radius:24px;font-size:14px;font-weight:600;z-index:9999;opacity:0;transition:all 0.25s;white-space:nowrap;max-width:90vw;display:flex;align-items:center;gap:7px;box-shadow:var(--shadow);pointer-events:none}
-.toast svg{width:15px;height:15px;stroke:currentColor}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.toast.err{background:var(--danger)}
-.ml-divider{height:1px;background:var(--border);margin:16px 0}
-.mt-8{margin-top:8px}.mt-12{margin-top:12px}.mt-16{margin-top:16px}.mt-20{margin-top:20px}.mt-24{margin-top:24px}.mb-12{margin-bottom:12px}
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--text);color:#fff;padding:10px 18px;border-radius:22px;font-size:14px;font-weight:600;z-index:9999;opacity:0;transition:all 0.25s;white-space:nowrap;max-width:88vw;pointer-events:none;box-shadow:var(--sh)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.red{background:var(--danger)}
 
-@media(min-width:480px){body{background:#E8EAF0}.screen{max-width:480px;margin:0 auto;box-shadow:var(--shadow)}}
-@media(orientation:landscape) and (max-height:500px){.ob-icon-wrap{width:72px;height:72px;margin-bottom:20px}.ob-title{font-size:22px}.page-hero{margin-bottom:14px}.hero-title{font-size:22px}.ml-card{padding:14px}}
+/* UTILS */
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mt20{margin-top:20px}.mt24{margin-top:24px}
+.divider{height:1px;background:var(--border);margin:14px 0}
+@media(min-width:480px){body{background:#E8EAF0}.scr{max-width:480px;margin:0 auto;box-shadow:0 0 40px rgba(0,0,0,0.12)}}
+@media(orientation:landscape) and (max-height:500px){.ob-h{font-size:21px}.ob-body{padding:20px 32px 12px}.hero-h{font-size:21px}.card{padding:12px}}
 </style>
 </head>
 <body>
 
 <!-- ONBOARDING -->
-<div id="onboardingScreen" class="screen active">
+<div id="scrOb" class="scr on">
   <div class="ob-body">
-    <div class="ob-icon-wrap" id="obIconWrap"></div>
-    <h1 class="ob-title" id="obTitle"></h1>
-    <p class="ob-desc" id="obDesc"></p>
+    <div class="ob-icon" id="obIcon">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </div>
+    <h1 class="ob-h" id="obH">상품을 보는 눈이<br>달라집니다</h1>
+    <p class="ob-p" id="obP">편의점 삼각김밥, 스타벅스 커피, 배달앱<br>일상의 모든 것이 사업 아이디어가 됩니다</p>
   </div>
-  <div class="ob-footer">
-    <div class="ob-dots" id="obDots"></div>
-    <button id="obNextBtn">다음</button>
-    <button id="obSkip">건너뛰기</button>
+  <div class="ob-foot">
+    <div class="ob-dots" id="obDots">
+      <div class="dot on"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+    <button class="ob-btn" id="obNext">다음</button>
+    <button class="ob-skip" id="obSkip">건너뛰기</button>
   </div>
 </div>
 
 <!-- AUTH -->
-<div id="authScreen" class="screen">
-  <div class="auth-wrap" id="authWrap"></div>
+<div id="scrAuth" class="scr">
+  <div class="auth-inner" id="authInner"></div>
 </div>
 
 <!-- APP -->
-<div id="appScreen" class="screen">
-  <header class="top-nav">
-    <div class="nav-brand-row">
-      <div class="nav-brand-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+<div id="scrApp" class="scr">
+  <div class="topnav">
+    <div class="brand-row">
+      <div class="brand-box">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       </div>
-      <span class="nav-brand-name">MoneyLens</span>
-      <span class="nav-brand-sub">돈 벌 생각</span>
+      <span class="brand-name">MoneyLens</span>
+      <span class="brand-tag">돈 벌 생각</span>
     </div>
-    <nav class="top-tabs" id="topTabs">
-      <button class="top-tab active" data-page="lens">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>렌즈
-      </button>
-      <button class="top-tab" data-page="ideas">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>아이디어함
-      </button>
-      <button class="top-tab" data-page="eval">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>평가실
-      </button>
-      <button class="top-tab" data-page="cases">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>사례
-      </button>
-      <button class="top-tab" data-page="settings">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>설정
-      </button>
-    </nav>
-  </header>
-  <div id="mainContent"></div>
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-p="lens">렌즈</button>
+      <button class="tab" data-p="ideas">아이디어함</button>
+      <button class="tab" data-p="eval">평가실</button>
+      <button class="tab" data-p="cases">사례</button>
+      <button class="tab" data-p="settings">설정</button>
+    </div>
+  </div>
+  <div id="main"></div>
 </div>
 
 <script>
-// ── SVG ICONS ─────────────────────────────────────
-const IC = {
-  search:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`,
-  copy:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
-  check:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
-  x:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
-  info:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
-  bar:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
-  dollar:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
-  star:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
-  warn:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
-  book:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
-  play:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`,
-  save:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`,
-  trash:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
-  logout:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`,
-  back:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`,
-  user:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
-  chevron:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`,
-  img:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`,
-  link:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`,
-  text:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`,
-};
-
 // ── FIREBASE ──────────────────────────────────────
 firebase.initializeApp({
   apiKey:"AIzaSyBujxf8knm_dolV2cDD_nuxMI9hucXD5ys",
@@ -376,589 +279,932 @@ firebase.initializeApp({
   messagingSenderId:"1085597108252",
   appId:"1:1085597108252:web:a340c8ebc84e153b4037d9"
 });
-const auth = firebase.auth();
-const db = firebase.firestore();
+var auth = firebase.auth();
+var db   = firebase.firestore();
+var TS   = firebase.firestore.FieldValue.serverTimestamp;
 
 // ── STATE ─────────────────────────────────────────
-let currentUser=null, userProfile=null, currentAnalysis=null, radarChart=null, obStep=0;
+var user     = null;
+var profile  = null;
+var analysis = null;
+var obStep   = 0;
+
+// ── SCREEN ────────────────────────────────────────
+function show(id) {
+  var screens = document.querySelectorAll('.scr');
+  for (var i = 0; i < screens.length; i++) screens[i].classList.remove('on');
+  document.getElementById(id).classList.add('on');
+}
 
 // ── ONBOARDING ────────────────────────────────────
-const obSlides=[
-  {icon:IC.search, title:'상품을 보는 눈이\n달라집니다', desc:'편의점 삼각김밥, 스타벅스 커피, 배달앱…\n일상의 모든 것이 사업 아이디어가 됩니다'},
-  {icon:IC.book,   title:'원가부터 유통까지\nAI가 해부합니다', desc:'생산 구조, 유통 마진, 시장 규모를\n한눈에 파악하세요'},
-  {icon:IC.dollar, title:'기회를 발견하고\n사업으로 만드세요', desc:'실현가능성 평가부터 사업 초안까지\n돈 버는 생각을 실행으로'}
+var obData = [
+  {
+    svgInner: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>',
+    h: '상품을 보는 눈이<br>달라집니다',
+    p: '편의점 삼각김밥, 스타벅스 커피, 배달앱<br>일상의 모든 것이 사업 아이디어가 됩니다'
+  },
+  {
+    svgInner: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+    h: '원가부터 유통까지<br>AI가 해부합니다',
+    p: '생산 구조, 유통 마진, 시장 규모를<br>한눈에 파악하세요'
+  },
+  {
+    svgInner: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+    h: '기회를 발견하고<br>사업으로 만드세요',
+    p: '실현가능성 평가부터 사업 초안까지<br>돈 버는 생각을 실행으로'
+  }
 ];
 
-function renderOb(){
-  const s=obSlides[obStep];
-  document.getElementById('obIconWrap').innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:48px;height:48px;stroke:var(--green)">${s.icon.match(/<svg[^>]*>(.*)<\/svg>/s)?.[1]||''}</svg>`;
-  document.getElementById('obTitle').innerHTML=s.title.replace('\n','<br>');
-  document.getElementById('obDesc').innerHTML=s.desc.replace('\n','<br>');
-  document.getElementById('obDots').innerHTML=obSlides.map((_,i)=>`<div class="ob-dot${i===obStep?' active':''}"></div>`).join('');
-  document.getElementById('obNextBtn').textContent=obStep<obSlides.length-1?'다음':'시작하기';
-  document.getElementById('obSkip').style.visibility=obStep<obSlides.length-1?'visible':'hidden';
+function renderOb() {
+  var d = obData[obStep];
+  var svg = document.querySelector('#obIcon svg');
+  svg.innerHTML = d.svgInner;
+  document.getElementById('obH').innerHTML = d.h;
+  document.getElementById('obP').innerHTML  = d.p;
+  var dots = document.querySelectorAll('.dot');
+  for (var i = 0; i < dots.length; i++) {
+    if (i === obStep) dots[i].classList.add('on');
+    else dots[i].classList.remove('on');
+  }
+  document.getElementById('obNext').textContent = (obStep < 2) ? '다음' : '시작하기';
+  document.getElementById('obSkip').style.visibility = (obStep < 2) ? 'visible' : 'hidden';
 }
-document.getElementById('obNextBtn').addEventListener('click',()=>{
-  if(obStep<obSlides.length-1){obStep++;renderOb();}else showAuth('login');
-});
-document.getElementById('obSkip').addEventListener('click',()=>showAuth('login'));
-renderOb();
 
-// ── SCREENS ───────────────────────────────────────
-function showScreen(name){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(name+'Screen').classList.add('active');
-}
-function showAuth(mode){showScreen('auth');mode==='login'?renderLogin():renderSignup();}
+document.getElementById('obNext').onclick = function() {
+  if (obStep < 2) { obStep++; renderOb(); }
+  else showLogin();
+};
+document.getElementById('obSkip').onclick = function() { showLogin(); };
 
 // ── AUTH ──────────────────────────────────────────
-function logoHtml(){
-  return `<div class="auth-logo-wrap"><div class="auth-logo-icon">${IC.search}</div><span class="auth-brand">MoneyLens</span></div>`;
+function logoHtml() {
+  return '<div class="auth-logo">' +
+    '<div class="auth-logo-box"><svg viewBox="0 0 24 24" fill="none" stroke="#05C072" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>' +
+    '<span class="auth-logo-name">MoneyLens</span>' +
+  '</div>';
 }
-function renderLogin(){
-  document.getElementById('authWrap').innerHTML=`
-    ${logoHtml()}
-    <h1 class="auth-heading">로그인</h1>
-    <p class="auth-sub">돈 버는 생각을 시작하세요</p>
-    <div class="form-group"><label class="form-label">이메일</label>
-      <input type="email" id="loginEmail" class="ml-input" placeholder="이메일을 입력하세요" autocomplete="email"></div>
-    <div class="form-group"><label class="form-label">비밀번호</label>
-      <input type="password" id="loginPw" class="ml-input" placeholder="비밀번호를 입력하세요" autocomplete="current-password"></div>
-    <div id="loginError" class="auth-error"></div>
-    <button class="btn-primary" id="loginBtn">로그인</button>
-    <button class="btn-ghost" id="goSignupBtn">처음 오셨나요? 회원가입</button>`;
-  document.getElementById('loginBtn').addEventListener('click',doLogin);
-  document.getElementById('loginEmail').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('loginPw').focus();});
-  document.getElementById('loginPw').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-  document.getElementById('goSignupBtn').addEventListener('click',()=>renderSignup());
+
+function showLogin() {
+  show('scrAuth');
+  var el = document.getElementById('authInner');
+  el.innerHTML = logoHtml() +
+    '<h1 class="auth-h">로그인</h1>' +
+    '<p class="auth-sub">돈 버는 생각을 시작하세요</p>' +
+    '<div class="field"><label>이메일</label><input id="lEmail" type="email" class="inp" placeholder="이메일을 입력하세요" autocomplete="email"></div>' +
+    '<div class="field"><label>비밀번호</label><input id="lPw" type="password" class="inp" placeholder="비밀번호를 입력하세요" autocomplete="current-password"></div>' +
+    '<div id="lErr" class="err-box"></div>' +
+    '<button id="lBtn" class="btn-pri">로그인</button>' +
+    '<button id="lToSig" class="btn-sec">처음 오셨나요? 회원가입</button>';
+
+  document.getElementById('lBtn').onclick = doLogin;
+  document.getElementById('lToSig').onclick = showSignup;
+  document.getElementById('lEmail').onkeydown = function(e) { if (e.key === 'Enter') document.getElementById('lPw').focus(); };
+  document.getElementById('lPw').onkeydown = function(e) { if (e.key === 'Enter') doLogin(); };
 }
-function renderSignup(){
-  document.getElementById('authWrap').innerHTML=`
-    <button class="back-link" id="backBtn">${IC.back} 로그인으로 돌아가기</button>
-    ${logoHtml()}
-    <h1 class="auth-heading">회원가입</h1>
-    <p class="auth-sub">계정을 만들어 시작하세요</p>
-    <div class="form-group"><label class="form-label">이름</label>
-      <input type="text" id="signupName" class="ml-input" placeholder="이름을 입력하세요"></div>
-    <div class="form-group"><label class="form-label">이메일</label>
-      <input type="email" id="signupEmail" class="ml-input" placeholder="이메일을 입력하세요" autocomplete="email"></div>
-    <div class="form-group"><label class="form-label">비밀번호</label>
-      <input type="password" id="signupPw" class="ml-input" placeholder="6자 이상 입력하세요" autocomplete="new-password"></div>
-    <div id="signupError" class="auth-error"></div>
-    <button class="btn-primary" id="signupBtn">회원가입</button>`;
-  document.getElementById('backBtn').addEventListener('click',()=>renderLogin());
-  document.getElementById('signupBtn').addEventListener('click',doSignup);
-  document.getElementById('signupPw').addEventListener('keydown',e=>{if(e.key==='Enter')doSignup();});
+
+function showSignup() {
+  show('scrAuth');
+  var el = document.getElementById('authInner');
+  el.innerHTML =
+    '<button id="sBack" class="back-btn">← 로그인으로 돌아가기</button>' +
+    logoHtml() +
+    '<h1 class="auth-h">회원가입</h1>' +
+    '<p class="auth-sub">계정을 만들어 시작하세요</p>' +
+    '<div class="field"><label>이름</label><input id="sName" type="text" class="inp" placeholder="이름을 입력하세요"></div>' +
+    '<div class="field"><label>이메일</label><input id="sEmail" type="email" class="inp" placeholder="이메일을 입력하세요" autocomplete="email"></div>' +
+    '<div class="field"><label>비밀번호</label><input id="sPw" type="password" class="inp" placeholder="6자 이상 입력하세요" autocomplete="new-password"></div>' +
+    '<div id="sErr" class="err-box"></div>' +
+    '<button id="sBtn" class="btn-pri">회원가입</button>';
+
+  document.getElementById('sBack').onclick = showLogin;
+  document.getElementById('sBtn').onclick  = doSignup;
+  document.getElementById('sPw').onkeydown = function(e) { if (e.key === 'Enter') doSignup(); };
 }
-function showAuthErr(id,msg){const el=document.getElementById(id);if(el){el.textContent=msg;el.style.display='block';}}
-function doLogin(){
-  const email=(document.getElementById('loginEmail')?.value||'').trim();
-  const pw=document.getElementById('loginPw')?.value||'';
-  if(!email||!pw){showAuthErr('loginError','이메일과 비밀번호를 입력해주세요');return;}
-  auth.signInWithEmailAndPassword(email,pw).catch(e=>{
-    showAuthErr('loginError',
-      (e.code==='auth/invalid-credential'||e.code==='auth/wrong-password'||e.code==='auth/user-not-found')
-        ?'이메일 또는 비밀번호가 올바르지 않습니다':'로그인 실패: '+e.message);
+
+function showErr(id, msg) {
+  var el = document.getElementById(id);
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+function doLogin() {
+  var email = (document.getElementById('lEmail').value || '').trim();
+  var pw    = document.getElementById('lPw').value || '';
+  if (!email || !pw) { showErr('lErr', '이메일과 비밀번호를 입력해주세요'); return; }
+  auth.signInWithEmailAndPassword(email, pw).catch(function(e) {
+    var msg = (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found')
+      ? '이메일 또는 비밀번호가 올바르지 않습니다' : '로그인 실패: ' + e.message;
+    showErr('lErr', msg);
   });
 }
-function doSignup(){
-  const name=(document.getElementById('signupName')?.value||'').trim();
-  const email=(document.getElementById('signupEmail')?.value||'').trim();
-  const pw=document.getElementById('signupPw')?.value||'';
-  if(!name||!email||!pw){showAuthErr('signupError','모든 항목을 입력해주세요');return;}
-  if(pw.length<6){showAuthErr('signupError','비밀번호는 6자 이상이어야 합니다');return;}
-  auth.createUserWithEmailAndPassword(email,pw)
-    .then(c=>c.user.updateProfile({displayName:name}))
-    .catch(e=>showAuthErr('signupError',
-      e.code==='auth/email-already-in-use'?'이미 사용 중인 이메일입니다':
-      e.code==='auth/invalid-email'?'이메일 형식이 올바르지 않습니다':'회원가입 실패: '+e.message));
+
+function doSignup() {
+  var name  = (document.getElementById('sName').value  || '').trim();
+  var email = (document.getElementById('sEmail').value || '').trim();
+  var pw    = document.getElementById('sPw').value || '';
+  if (!name || !email || !pw) { showErr('sErr', '모든 항목을 입력해주세요'); return; }
+  if (pw.length < 6) { showErr('sErr', '비밀번호는 6자 이상이어야 합니다'); return; }
+  auth.createUserWithEmailAndPassword(email, pw).then(function(c) {
+    return c.user.updateProfile({ displayName: name });
+  }).catch(function(e) {
+    var msg = e.code === 'auth/email-already-in-use' ? '이미 사용 중인 이메일입니다'
+      : e.code === 'auth/invalid-email' ? '이메일 형식이 올바르지 않습니다'
+      : '회원가입 실패: ' + e.message;
+    showErr('sErr', msg);
+  });
 }
-auth.onAuthStateChanged(async user=>{
-  currentUser=user;
-  if(user){showScreen('app');await loadProfile();goPage('lens');}
-  else showScreen('onboarding');
+
+auth.onAuthStateChanged(function(u) {
+  user = u;
+  if (u) {
+    loadProfile(function() { show('scrApp'); goPage('lens'); });
+  } else {
+    show('scrOb');
+  }
 });
 
 // ── PROFILE ───────────────────────────────────────
-async function loadProfile(){
-  try{const s=await db.collection(`users/${currentUser.uid}/profile`).get();
-    userProfile=s.empty?null:s.docs[0].data();}catch{userProfile=null;}
+function loadProfile(cb) {
+  db.collection('users/' + user.uid + '/profile').get().then(function(s) {
+    profile = s.empty ? null : s.docs[0].data();
+    if (cb) cb();
+  }).catch(function() { profile = null; if (cb) cb(); });
 }
-async function saveProfile(data){
-  try{const s=await db.collection(`users/${currentUser.uid}/profile`).get();
-    if(!s.empty)await s.docs[0].ref.update(data);
-    else await db.collection(`users/${currentUser.uid}/profile`).add(data);
-    userProfile=data;showToast('프로필이 저장됐습니다');}
-  catch(e){showToast('저장 실패: '+e.message,true);}
+
+function saveProfile(data, cb) {
+  db.collection('users/' + user.uid + '/profile').get().then(function(s) {
+    var p = s.empty
+      ? db.collection('users/' + user.uid + '/profile').add(data)
+      : s.docs[0].ref.update(data);
+    return p;
+  }).then(function() {
+    profile = data;
+    toast('프로필이 저장됐습니다');
+    if (cb) cb();
+  }).catch(function(e) { toast('저장 실패: ' + e.message, true); });
 }
 
 // ── NAV ───────────────────────────────────────────
-document.getElementById('topTabs').addEventListener('click',e=>{
-  const btn=e.target.closest('.top-tab');if(btn)goPage(btn.dataset.page);
-});
-function goPage(page){
-  document.querySelectorAll('.top-tab').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
-  const main=document.getElementById('mainContent');
-  main.scrollTop=0;
-  ({lens:renderLens,ideas:renderIdeas,eval:renderEval,cases:renderCases,settings:renderSettings}[page]||renderLens)(main);
-}
+document.getElementById('tabs').onclick = function(e) {
+  var btn = e.target.closest('.tab');
+  if (btn) goPage(btn.dataset.p);
+};
 
-// ── PROMPT HELPERS ────────────────────────────────
-function profileCtxStr(){
-  return userProfile?`\n\n[내 프로필]\n- 역량: ${userProfile.skills||'미입력'}\n- 자본: ${userProfile.capital||'미입력'}\n- 관심산업: ${userProfile.industry||'미입력'}\n- 가용시간: ${userProfile.time||'미입력'}`:'';
-}
-function copyText(text,successMsg){
-  const fallback=()=>{
-    const ta=document.createElement('textarea');
-    ta.value=text;ta.style.cssText='position:fixed;opacity:0;top:0;left:0';
-    document.body.appendChild(ta);ta.focus();ta.select();
-    try{document.execCommand('copy');}catch{}
-    document.body.removeChild(ta);
-  };
-  if(navigator.clipboard&&window.isSecureContext){
-    navigator.clipboard.writeText(text).then(()=>showToast(successMsg)).catch(()=>{fallback();showToast(successMsg);});
-  }else{fallback();showToast(successMsg);}
-}
-function aiLinksHtml(){
-  return `<div class="ai-guide-links mt-8">
-    <a href="https://chat.openai.com" target="_blank" class="ai-link">ChatGPT 열기 →</a>
-    <a href="https://claude.ai" target="_blank" class="ai-link">Claude 열기 →</a>
-  </div>`;
-}
-function pasteAreaHtml(id,btnId,btnLabel,ph){
-  return `<div class="ml-card">
-    <div class="paste-hint">AI 결과를 아래에 붙여넣어 주세요</div>
-    <textarea id="${id}" class="ml-textarea" style="min-height:160px" placeholder="${ph}"></textarea>
-    <button class="btn-full mt-12" id="${btnId}">${IC.check} ${btnLabel}</button>
-  </div>`;
-}
-
-// ── LENS ──────────────────────────────────────────
-function renderLens(main){
-  main.innerHTML=`
-    <div class="page-hero">
-      <div class="hero-badge">${IC.star} 돈 벌 생각</div>
-      <h1 class="hero-title">상품을 보는 눈이<br>달라지면 돈이 보입니다</h1>
-    </div>
-    <div class="ml-card">
-      <div class="mode-tabs">
-        <button class="mode-tab active" data-mode="text">${IC.text} 텍스트</button>
-        <button class="mode-tab" data-mode="image">${IC.img} 이미지</button>
-        <button class="mode-tab" data-mode="url">${IC.link} URL</button>
-      </div>
-      <div id="modeText">
-        <textarea id="textInput" class="ml-textarea" placeholder="분석할 상품이나 서비스를 입력하세요&#10;예) 편의점 삼각김밥, 스타벅스 아메리카노, 쿠팡 로켓배송..."></textarea>
-      </div>
-      <div id="modeImage" style="display:none">
-        <div class="img-drop" id="imgDrop">
-          <div id="imgPreview">${IC.img}<div class="img-drop-text">사진을 탭해서 업로드</div><div class="img-drop-sub">상품 사진, 영수증, 패키지 등</div></div>
-        </div>
-        <input type="file" id="imgFile" accept="image/*" style="display:none">
-        <div style="font-size:12px;color:var(--text3);margin-top:8px;line-height:1.5">📷 사진은 AI 앱에서 직접 첨부해주세요. 아래 버튼으로 프롬프트를 복사한 후 ChatGPT/Claude에서 사진과 함께 붙여넣으세요.</div>
-      </div>
-      <div id="modeUrl" style="display:none">
-        <input type="url" id="urlInput" class="ml-input-field" placeholder="쿠팡, 네이버쇼핑, 배민 등 URL 붙여넣기">
-      </div>
-      <button class="btn-full" id="copyPromptBtn">${IC.copy} 프롬프트 복사하기</button>
-      <div class="ai-guide-box">
-        <div class="ai-guide-title">${IC.info} 이렇게 사용하세요</div>
-        <div class="ai-guide-steps">
-          <div class="ai-guide-step"><span class="step-num">1</span>위 버튼으로 프롬프트 복사</div>
-          <div class="ai-guide-step"><span class="step-num">2</span>ChatGPT 또는 Claude에 붙여넣기</div>
-          <div class="ai-guide-step"><span class="step-num">3</span>AI 답변을 아래 붙여넣기 후 저장</div>
-        </div>
-        ${aiLinksHtml()}
-        <div class="ai-photo-note">📷 이미지 탭 선택 시 — AI 앱에서 사진을 첨부한 후 복사한 프롬프트를 함께 붙여넣어 주세요</div>
-      </div>
-    </div>
-    <div class="section-label">${IC.info} 이렇게 활용해보세요</div>
-    <div class="hint-grid">
-      <div class="hint-card" data-hint="편의점 삼각김밥"><span class="hint-emoji">🍙</span><span class="hint-text">편의점 삼각김밥</span></div>
-      <div class="hint-card" data-hint="스타벅스 아메리카노"><span class="hint-emoji">☕</span><span class="hint-text">스타벅스 아메리카노</span></div>
-      <div class="hint-card" data-hint="배달앱 서비스"><span class="hint-emoji">📱</span><span class="hint-text">배달앱 서비스</span></div>
-      <div class="hint-card" data-hint="요가매트"><span class="hint-emoji">🧘</span><span class="hint-text">요가매트</span></div>
-    </div>
-    <div id="pasteSection" style="display:none">
-      <div class="section-label mt-20">${IC.copy} AI 분석 결과 붙여넣기</div>
-      ${pasteAreaHtml('pasteInput','savePasteBtn','분석 결과 저장하기','ChatGPT 또는 Claude의 분석 결과를 여기에 붙여넣어 주세요...')}
-    </div>
-    <div id="analysisResult"></div>`;
-
-  // Mode tabs
-  main.querySelectorAll('.mode-tab').forEach(btn=>{
-    btn.addEventListener('click',function(){
-      main.querySelectorAll('.mode-tab').forEach(b=>b.classList.remove('active'));
-      this.classList.add('active');
-      ['modeText','modeImage','modeUrl'].forEach(id=>document.getElementById(id).style.display='none');
-      document.getElementById('mode'+this.dataset.mode[0].toUpperCase()+this.dataset.mode.slice(1)).style.display='block';
-    });
-  });
-  // Hints
-  main.querySelectorAll('.hint-card').forEach(c=>{
-    c.addEventListener('click',function(){
-      main.querySelectorAll('.mode-tab').forEach(b=>b.classList.toggle('active',b.dataset.mode==='text'));
-      ['modeText','modeImage','modeUrl'].forEach(id=>document.getElementById(id).style.display='none');
-      document.getElementById('modeText').style.display='block';
-      document.getElementById('textInput').value=this.dataset.hint;
-    });
-  });
-  // Image
-  document.getElementById('imgDrop').addEventListener('click',()=>document.getElementById('imgFile').click());
-  document.getElementById('imgFile').addEventListener('change',function(){
-    const file=this.files[0];if(!file)return;
-    const r=new FileReader();
-    r.onload=e=>{document.getElementById('imgPreview').innerHTML=`<img src="${e.target.result}" style="max-width:100%;max-height:180px;border-radius:8px;object-fit:contain">`;};
-    r.readAsDataURL(file);
-  });
-  // Copy prompt
-  document.getElementById('copyPromptBtn').addEventListener('click',()=>{
-    const mode=document.querySelector('.mode-tab.active')?.dataset.mode||'text';
-    let input='';
-    if(mode==='text') input=(document.getElementById('textInput')?.value||'').trim();
-    else if(mode==='url') input=(document.getElementById('urlInput')?.value||'').trim();
-    else input='첨부한 상품 이미지';
-    if(!input&&mode!=='image'){showToast('분석할 내용을 입력해주세요',true);return;}
-    const prompt=buildPrompt(input,mode);
-    copyText(prompt,'프롬프트 복사됨! AI에 붙여넣어 주세요');
-    currentAnalysis={inputContent:input,inputType:mode,productName:input};
-    document.getElementById('pasteSection').style.display='block';
-    setTimeout(()=>document.getElementById('pasteSection').scrollIntoView({behavior:'smooth'}),200);
-  });
-  // Save paste
-  main.addEventListener('click',e=>{
-    if(e.target.closest('#savePasteBtn')){
-      const raw=(document.getElementById('pasteInput')?.value||'').trim();
-      if(!raw){showToast('분석 결과를 붙여넣어 주세요',true);return;}
-      const result=parseAnalysis(raw);
-      currentAnalysis={...currentAnalysis,...result};
-      renderAnalysisResult(document.getElementById('analysisResult'),result);
-      document.getElementById('pasteSection').style.display='none';
-      showToast('분석 결과가 저장됐습니다 ✅');
-    }
-  });
-}
-
-function buildPrompt(input,type){
-  return `당신은 비즈니스 역공학(reverse engineering) 전문가입니다.
-아래 상품/서비스를 분석하여 돈이 되는 기회를 발견해주세요.
-추정값은 ✅확인됨 / ⚠️추정 / ❓불확실 로 표기해주세요.
-
-[분석 대상]
-${type==='url'?'URL: ':''}${input}
-${profileCtxStr()}
-
-아래 6가지 항목을 순서대로 분석해주세요:
-
-1. 📋 상품 개요
-(무엇인가, 왜 만들어졌나 - 2~3문장)
-
-2. 🏭 생산 구조
-(어디서 어떻게 만들어지나, 원가 추정 - 신뢰도 표기)
-
-3. 🚚 유통 경로
-(제조→도매→소매 구조, 각 단계 마진 추정)
-
-4. 📊 시장 규모
-(국내/글로벌 추정)
-
-5. 💡 기회 포인트
-(개선/틈새/사업 기회 3가지를 각각 한 줄로)
-
-6. 💰 돈 되는 아이디어 3가지
-각 아이디어마다:
-- 아이디어명:
-- 설명: (2~3문장)
-- 수익 모델:`;
-}
-
-function parseAnalysis(raw){
-  const get=(rx)=>{const m=raw.match(rx);return m?m[1].trim():''};
-  const overview=get(/1\.\s*📋[^\n]*\n([\s\S]*?)(?=2\.|$)/);
-  const production=get(/2\.\s*🏭[^\n]*\n([\s\S]*?)(?=3\.|$)/);
-  const distribution=get(/3\.\s*🚚[^\n]*\n([\s\S]*?)(?=4\.|$)/);
-  const market=get(/4\.\s*📊[^\n]*\n([\s\S]*?)(?=5\.|$)/);
-  const oppRaw=get(/5\.\s*💡[^\n]*\n([\s\S]*?)(?=6\.|$)/);
-  const opportunities=oppRaw.split('\n').map(l=>l.replace(/^[-•*\d.]+\s*/,'').trim()).filter(l=>l.length>5).slice(0,3);
-  const ideaRaw=get(/6\.\s*💰[^\n]*\n([\s\S]*?)$/);
-  const ideas=[];
-  if(ideaRaw){
-    const blocks=ideaRaw.split(/(?=아이디어명[：:])/);
-    blocks.forEach(b=>{
-      const t=b.match(/아이디어명[：:]\s*([^\n]+)/);
-      const d=b.match(/설명[：:]\s*([\s\S]*?)(?=수익 모델|$)/);
-      const r=b.match(/수익 모델[：:]\s*([^\n]+)/);
-      if(t)ideas.push({title:t[1].trim(),description:d?d[1].trim():'',revenueModel:r?r[1].trim():''});
-    });
-  }
-  return {productName:currentAnalysis?.inputContent||'분석 결과',overview,production,distribution,market,opportunities,ideas,reliabilityNote:'AI가 제공한 분석 결과입니다. 중요한 의사결정 전 수치를 검증해주세요.',rawText:raw};
-}
-
-function renderAnalysisResult(container,r){
-  container.innerHTML=`
-    <div class="result-title-bar mt-16">
-      <div class="result-product-name">${r.productName||'분석 결과'}</div>
-      <span class="result-tag">AI 분석</span>
-    </div>
-    ${r.overview?`<div class="ml-card"><div class="card-eyebrow">${IC.info}상품 개요</div><div class="card-body">${r.overview}</div></div>`:''}
-    ${r.production?`<div class="ml-card"><div class="card-eyebrow">${IC.info}생산 구조</div><div class="card-body">${r.production}</div></div>`:''}
-    ${r.distribution?`<div class="ml-card"><div class="card-eyebrow">${IC.info}유통 경로</div><div class="card-body">${r.distribution}</div></div>`:''}
-    ${r.market?`<div class="ml-card"><div class="card-eyebrow">${IC.bar}시장 규모</div><div class="card-body">${r.market}</div></div>`:''}
-    ${r.opportunities&&r.opportunities.length?`<div class="ml-card"><div class="card-eyebrow">${IC.star}기회 포인트</div>${r.opportunities.map(o=>`<div class="opp-row"><div class="opp-bullet"></div><div class="opp-text">${o}</div></div>`).join('')}</div>`:''}
-    ${!r.overview&&r.rawText?`<div class="ml-card"><div class="card-eyebrow">${IC.info}AI 분석 결과</div><div class="card-body" style="white-space:pre-wrap;font-size:13px;line-height:1.7">${r.rawText}</div></div>`:''}
-    <div class="section-label mt-20">${IC.star} 내 생각을 먼저 적어보세요</div>
-    <div class="ml-card">
-      <div class="my-idea-label">이 상품에서 어떤 기회가 보이나요?</div>
-      <textarea id="myIdeaInput" class="ml-textarea sm" placeholder="나만의 아이디어를 자유롭게 써보세요..."></textarea>
-      <button class="btn-full secondary mt-12" id="expandBtn">${IC.copy} 아이디어 확장 프롬프트 복사</button>
-    </div>
-    <div id="expandResult"></div>
-    ${r.ideas&&r.ideas.length?`<div class="section-label mt-20">${IC.dollar} AI 제안 아이디어</div>${r.ideas.map((idea,i)=>`<div class="idea-item"><div class="idea-idx">${i+1}</div><div class="idea-body"><div class="idea-title">${idea.title}</div><div class="idea-desc">${idea.description}</div><div class="revenue-tag">${IC.dollar}${idea.revenueModel}</div></div></div>`).join('')}`:''}
-    <div class="reliability-strip">${IC.warn}<span>${r.reliabilityNote}</span></div>
-    <div class="btn-row">
-      <button class="btn-full" id="saveAnalysisBtn">아이디어함 저장</button>
-      <button class="btn-full secondary" id="goEvalBtn">실현가능성 평가</button>
-    </div>`;
-
-  container.querySelector('#expandBtn')?.addEventListener('click',()=>{
-    const myIdea=(document.getElementById('myIdeaInput')?.value||'').trim();
-    if(!myIdea){showToast('아이디어를 먼저 입력해주세요',true);return;}
-    const prompt=`당신은 비즈니스 아이디어 확장 전문가입니다.\n\n[상품]: ${currentAnalysis?.productName||''}\n[내 아이디어]: ${myIdea}\n\n아래 형식으로 확장해주세요:\n\n1. 확장된 아이디어 (3~4문장으로 구체화)\n2. 수익 모델 (어떻게 돈을 버는지)\n3. 첫 번째 실행 단계 (당장 할 수 있는 구체적 액션)`;
-    copyText(prompt,'아이디어 확장 프롬프트 복사됨!');
-    document.getElementById('expandResult').innerHTML=`<div class="ml-card">${aiLinksHtml()}</div>`;
-    if(currentAnalysis) currentAnalysis.myIdea=myIdea;
-  });
-  container.querySelector('#saveAnalysisBtn')?.addEventListener('click',saveAnalysis);
-  container.querySelector('#goEvalBtn')?.addEventListener('click',()=>goPage('eval'));
-}
-
-async function saveAnalysis(){
-  if(!currentAnalysis){showToast('분석 결과가 없습니다',true);return;}
-  try{
-    await db.collection(`users/${currentUser.uid}/analyses`).add({...currentAnalysis,savedAt:firebase.firestore.FieldValue.serverTimestamp(),evaluated:false});
-    showToast('아이디어함에 저장됐습니다 ✅');
-  }catch(e){showToast('저장 실패: '+e.message,true);}
-}
-
-// ── IDEAS ─────────────────────────────────────────
-async function renderIdeas(main){
-  main.innerHTML=`<div class="page-hero"><div class="hero-badge">${IC.book}아이디어함</div><h1 class="hero-title">저장된 분석</h1></div><div class="loading-inline"><div class="spinner"></div>불러오는 중...</div>`;
-  try{
-    const snap=await db.collection(`users/${currentUser.uid}/analyses`).orderBy('savedAt','desc').get();
-    const list=snap.docs.map(d=>({id:d.id,...d.data()}));
-    const evalCount=list.filter(a=>a.evaluated).length;
-    const topKeys={};list.forEach(a=>{const k=(a.productName||'기타').split(' ')[0];topKeys[k]=(topKeys[k]||0)+1;});
-    const top3=Object.entries(topKeys).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0]).join(' · ')||'-';
-    let html=`<div class="page-hero"><div class="hero-badge">${IC.book}아이디어함</div><h1 class="hero-title">저장된 분석</h1></div>
-      <div class="stat-row">
-        <div class="stat-box"><div class="stat-num">${list.length}</div><div class="stat-label">총 분석</div></div>
-        <div class="stat-box"><div class="stat-num">${evalCount}</div><div class="stat-label">평가 완료</div></div>
-        <div class="stat-box" style="flex:1.5"><div class="stat-num sm">${top3}</div><div class="stat-label">관심 분야</div></div>
-      </div>`;
-    if(!list.length){
-      html+=`<div class="empty-state"><div class="empty-icon">${IC.search}</div><div class="empty-title">아직 저장된 분석이 없습니다</div><div class="empty-desc">렌즈 탭에서 상품을 분석하면<br>여기에 저장됩니다</div><button class="empty-btn" id="toLensBtn">${IC.search}렌즈로 이동</button></div>`;
-    }else{
-      html+=list.map(a=>`
-        <div class="idea-list-card" data-id="${a.id}">
-          <div class="ilc-main">
-            <div><div class="ilc-name">${a.productName||a.inputContent||'분석 결과'}</div><div class="ilc-preview">${a.opportunities?.[0]||a.overview?.slice(0,60)||''}</div></div>
-            <div class="ilc-right">
-              ${a.evaluated?'<span class="pill green">평가완료</span>':''}
-              <span class="date-text">${fmtDate(a.savedAt)}</span>
-              <div class="chevron-icon">${IC.chevron}</div>
-            </div>
-          </div>
-          <div class="detail-panel" id="dp-${a.id}">
-            <div class="detail-divider"></div>
-            ${a.overview?`<div class="detail-row"><div class="detail-key">개요</div><div class="detail-val">${a.overview}</div></div>`:''}
-            ${a.myIdea?`<div class="detail-row"><div class="detail-key">내 아이디어</div><div class="detail-val hl">${a.myIdea}</div></div>`:''}
-            <div class="detail-actions">
-              <button class="btn-sm green" data-eval="${a.id}">${IC.bar}평가하기</button>
-              <button class="btn-sm red" data-del="${a.id}">${IC.trash}삭제</button>
-            </div>
-          </div>
-        </div>`).join('');
-    }
-    main.innerHTML=html;
-    main.querySelector('#toLensBtn')?.addEventListener('click',()=>goPage('lens'));
-    main.addEventListener('click',async e=>{
-      const evalBtn=e.target.closest('[data-eval]');
-      if(evalBtn){const found=list.find(a=>a.id===evalBtn.dataset.eval);if(found){currentAnalysis=found;goPage('eval');}return;}
-      const delBtn=e.target.closest('[data-del]');
-      if(delBtn){
-        if(!confirm('삭제하시겠습니까?'))return;
-        await db.collection(`users/${currentUser.uid}/analyses`).doc(delBtn.dataset.del).delete();
-        showToast('삭제됐습니다');renderIdeas(main);return;
-      }
-      const card=e.target.closest('.idea-list-card');
-      if(card){const dp=document.getElementById(`dp-${card.dataset.id}`);if(dp)dp.style.display=dp.style.display==='block'?'none':'block';}
-    });
-  }catch(e){main.innerHTML+=`<div class="ml-card error-state"><div class="error-msg">${e.message}</div></div>`;}
-}
-
-// ── EVAL ──────────────────────────────────────────
-function renderEval(main){
-  if(!currentAnalysis){
-    main.innerHTML=`<div class="page-hero"><div class="hero-badge">${IC.bar}평가실</div><h1 class="hero-title">실현가능성 평가</h1></div>
-      <div class="empty-state"><div class="empty-icon">${IC.bar}</div><div class="empty-title">평가할 아이디어를 선택해주세요</div><div class="empty-desc">아이디어함에서 선택하거나<br>렌즈 분석 후 바로 평가할 수 있습니다</div><button class="empty-btn" id="toIdeasBtn">${IC.book}아이디어함으로</button></div>`;
-    main.querySelector('#toIdeasBtn')?.addEventListener('click',()=>goPage('ideas'));return;
-  }
-  main.innerHTML=`
-    <div class="page-hero"><div class="hero-badge">${IC.bar}평가실</div><h1 class="hero-title">실현가능성 평가</h1></div>
-    <div class="selected-bar">${IC.check}<div class="selected-bar-inner"><div class="selected-label">평가 대상</div><div class="selected-name">${currentAnalysis.productName||currentAnalysis.inputContent||'분석 결과'}</div></div></div>
-    ${!userProfile?`<div class="notice-card"><div class="notice-icon">${IC.warn}</div><div><div class="notice-title">프로필을 설정하면 더 정확합니다</div><div class="notice-desc">나의 역량, 자본을 입력하면 개인화된 평가를 받을 수 있어요</div><button class="notice-link" id="goSetBtn">프로필 설정하기 →</button></div></div>`:''}
-    <div class="eval-meta-card">
-      <div class="eval-meta-title">5가지 항목으로 평가합니다</div>
-      <div class="eval-meta-tags"><span class="eval-meta-tag">시장성</span><span class="eval-meta-tag">실행 난이도</span><span class="eval-meta-tag">초기 자본</span><span class="eval-meta-tag">경쟁 강도</span><span class="eval-meta-tag">나의 적합도</span></div>
-    </div>
-    <button class="btn-full" id="copyEvalBtn">${IC.copy} 평가 프롬프트 복사하기</button>
-    <div id="evalPasteArea" style="display:none">
-      <div class="section-label mt-16">${IC.copy} AI 평가 결과 붙여넣기</div>
-      ${pasteAreaHtml('evalPasteInput','saveEvalBtn','평가 결과 저장하기','AI 평가 결과를 여기에 붙여넣어 주세요...')}
-    </div>
-    <div id="evalDisplayResult"></div>`;
-
-  main.querySelector('#goSetBtn')?.addEventListener('click',()=>goPage('settings'));
-  main.querySelector('#copyEvalBtn')?.addEventListener('click',()=>{
-    const prompt=`당신은 비즈니스 아이디어 실현가능성 평가 전문가입니다.\n\n[분석 대상]: ${currentAnalysis.productName||''}\n[개요]: ${currentAnalysis.overview||''}\n[기회 포인트]: ${(currentAnalysis.opportunities||[]).join(', ')}${profileCtxStr()}\n\n아래 형식으로 평가해주세요:\n\n## 실현가능성 평가\n\n**종합 등급**: S/A/B/C 중 하나 (S:90↑ A:75↑ B:60↑ C:60↓)\n**총점**: 00점 / 100점\n\n### 항목별 점수 (각 20점 만점)\n1. 시장성: 00점 - (이유)\n2. 실행 난이도: 00점 - (이유)\n3. 초기 자본: 00점 - (이유)\n4. 경쟁 강도: 00점 - (이유)\n5. 나의 적합도: 00점 - (이유)\n\n### 종합 평가\n(2~3문장)\n\n### 강점\n(가장 유리한 점)\n\n### 약점\n(가장 보완해야 할 점)\n\n### 첫 번째 실행 액션\n(당장 할 수 있는 구체적 액션 1가지)`;
-    copyText(prompt,'평가 프롬프트 복사됨! AI에 붙여넣어 주세요');
-    document.getElementById('evalPasteArea').style.display='block';
-    const evalAi=document.createElement('div');
-    evalAi.style.cssText='margin-top:8px';
-    evalAi.innerHTML=aiLinksHtml();
-    document.querySelector('#copyEvalBtn').after(evalAi);
-  });
-  main.querySelector('#saveEvalBtn')?.addEventListener('click',()=>{
-    const raw=(document.getElementById('evalPasteInput')?.value||'').trim();
-    if(!raw){showToast('AI 평가 결과를 붙여넣어 주세요',true);return;}
-    const gradeM=raw.match(/종합 등급[^\n]*?([SABC])/);
-    const totalM=raw.match(/총점[^\n]*?(\d+)/);
-    const grade=gradeM?gradeM[1]:'B';
-    const total=totalM?parseInt(totalM[1]):0;
-    const gc={S:'#05C072',A:'#4CAF50',B:'#F59E0B',C:'#EF4444'}[grade]||'#05C072';
-    document.getElementById('evalDisplayResult').innerHTML=`
-      <div class="grade-hero mt-16" style="border-color:${gc}30;background:${gc}08">
-        <div class="grade-letter" style="color:${gc}">${grade}</div>
-        <div class="grade-pts" style="color:${gc}">${total}점 <span class="grade-pts-max">/ 100점</span></div>
-      </div>
-      <div class="ml-card mt-12"><div class="card-eyebrow">${IC.book}AI 평가 전문</div><div class="card-body" style="white-space:pre-wrap;font-size:13px;line-height:1.7">${raw}</div></div>
-      <div class="btn-row mt-16">
-        <button class="btn-full" id="draftBtn">사업 초안 생성</button>
-        <button class="btn-full secondary" id="casesBtn">유사 사례 탐구</button>
-      </div>
-      <div id="draftResult"></div>`;
-    document.getElementById('draftBtn').addEventListener('click',copyDraftPrompt);
-    document.getElementById('casesBtn').addEventListener('click',()=>goPage('cases'));
-    showToast('평가 결과가 저장됐습니다 ✅');
-    document.getElementById('evalPasteArea').style.display='none';
-    if(currentUser&&currentAnalysis?.id){
-      db.collection(`users/${currentUser.uid}/evaluations`).add({analysisId:currentAnalysis.id,productName:currentAnalysis.productName,grade,total,rawText:raw,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});
-      db.collection(`users/${currentUser.uid}/analyses`).doc(currentAnalysis.id).update({evaluated:true}).catch(()=>{});
-    }
-  });
-}
-
-function copyDraftPrompt(){
-  const prompt=`당신은 1페이지 사업 초안 작성 전문가입니다.\n\n[상품/서비스]: ${currentAnalysis?.productName||''}\n[기회 포인트]: ${(currentAnalysis?.opportunities||[]).join(', ')}\n[아이디어]: ${(currentAnalysis?.ideas||[]).map(i=>i?.title||'').join(', ')}\n\n아래 형식으로 작성해주세요:\n\n## 사업 초안\n\n**사업명**: \n**한줄 정의**: ""\n\n---\n- 타깃 고객:\n- 핵심 가치:\n- 수익 모델:\n- 예상 초기 투자금:\n\n---\n### 첫 90일 실행 계획\n- 1개월차:\n- 2개월차:\n- 3개월차:`;
-  copyText(prompt,'사업 초안 프롬프트 복사됨!');
-  const draftDiv=document.getElementById('draftResult');
-  if(draftDiv){
-    draftDiv.innerHTML=`<div class="ml-card mt-12">${aiLinksHtml()}<textarea id="draftPasteInput" class="ml-textarea mt-12" style="min-height:140px" placeholder="AI가 작성한 사업 초안을 붙여넣어 주세요..."></textarea><button class="btn-full secondary mt-12" id="saveDraftBtn">${IC.save}초안 저장하기</button><div id="draftSaved"></div></div>`;
-    draftDiv.querySelector('#saveDraftBtn')?.addEventListener('click',()=>{
-      const raw=(document.getElementById('draftPasteInput')?.value||'').trim();
-      if(!raw){showToast('초안을 붙여넣어 주세요',true);return;}
-      document.getElementById('draftSaved').innerHTML=`<div class="ml-card accent mt-12"><div class="card-eyebrow">저장된 사업 초안</div><div class="card-body" style="white-space:pre-wrap;font-size:13px;line-height:1.7">${raw}</div></div>`;
-      showToast('사업 초안이 저장됐습니다 ✅');
-    });
-  }
-}
-
-// ── CASES ─────────────────────────────────────────
-function renderCases(main){
-  if(!currentAnalysis){
-    main.innerHTML=`<div class="page-hero"><div class="hero-badge">${IC.book}사례탐구</div><h1 class="hero-title">유사 사례</h1></div>
-      <div class="empty-state"><div class="empty-icon">${IC.book}</div><div class="empty-title">분석된 상품이 없습니다</div><div class="empty-desc">렌즈에서 상품을 분석하면<br>유사 사례를 탐구할 수 있습니다</div><button class="empty-btn" id="toLensBtn2">${IC.search}렌즈로 이동</button></div>`;
-    main.querySelector('#toLensBtn2')?.addEventListener('click',()=>goPage('lens'));return;
-  }
-  main.innerHTML=`
-    <div class="page-hero"><div class="hero-badge">${IC.book}사례탐구</div><h1 class="hero-title">유사 사례</h1></div>
-    <div class="selected-bar">${IC.book}<div class="selected-bar-inner"><div class="selected-label">분석 대상</div><div class="selected-name">${currentAnalysis.productName||currentAnalysis.inputContent||'분석 결과'}</div></div></div>
-    <button class="btn-full" id="copyCasesBtn">${IC.copy} 사례탐구 프롬프트 복사하기</button>
-    <div id="casesPasteArea" style="display:none">
-      <div class="section-label mt-16">${IC.copy} AI 사례 결과 붙여넣기</div>
-      ${pasteAreaHtml('casesPasteInput','saveCasesBtn','사례 저장하기','AI가 찾은 사례를 여기에 붙여넣어 주세요...')}
-    </div>
-    <div id="casesResult"></div>`;
-
-  main.querySelector('#copyCasesBtn')?.addEventListener('click',()=>{
-    const prompt=`당신은 비즈니스 사례 전문가입니다.\n아래와 관련된 국내외 성공/실패 사례를 4~5개 찾아주세요.\n\n[분석 대상]: ${currentAnalysis.productName||''}\n[기회 포인트]: ${(currentAnalysis.opportunities||[]).join(', ')}\n[아이디어]: ${(currentAnalysis.ideas||[]).map(i=>i?.title||'').join(', ')}\n\n각 사례를 아래 형식으로 작성해주세요:\n\n### 사례 N: [회사/서비스명] (국내/해외 · 성공/실패)\n- 핵심 전략:\n- 성공/실패 이유:\n- 💡 내 아이디어에 주는 시사점:`;
-    copyText(prompt,'사례탐구 프롬프트 복사됨!');
-    document.getElementById('casesPasteArea').style.display='block';
-    const ai=document.createElement('div');ai.style.cssText='margin-top:8px';ai.innerHTML=aiLinksHtml();
-    document.querySelector('#copyCasesBtn').after(ai);
-  });
-  main.querySelector('#saveCasesBtn')?.addEventListener('click',()=>{
-    const raw=(document.getElementById('casesPasteInput')?.value||'').trim();
-    if(!raw){showToast('사례를 붙여넣어 주세요',true);return;}
-    document.getElementById('casesResult').innerHTML=`<div class="ml-card accent mt-12"><div class="card-eyebrow">${IC.book}저장된 사례</div><div class="card-body" style="white-space:pre-wrap;font-size:13px;line-height:1.7">${raw}</div></div>`;
-    document.getElementById('casesPasteArea').style.display='none';
-    showToast('사례가 저장됐습니다 ✅');
-  });
-}
-
-// ── SETTINGS ──────────────────────────────────────
-function renderSettings(main){
-  const p=userProfile||{};
-  const name=currentUser?.displayName||currentUser?.email?.split('@')[0]||'사용자';
-  const email=currentUser?.email||'';
-  main.innerHTML=`
-    <div class="page-hero"><div class="hero-badge">${IC.user}설정</div><h1 class="hero-title">내 계정</h1></div>
-    <div class="ml-card"><div class="profile-card">
-      <div class="avatar-circle">${name.charAt(0).toUpperCase()}</div>
-      <div style="flex:1;min-width:0"><div class="profile-name">${name}</div><div style="font-size:13px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${email}</div></div>
-      <button class="logout-btn" id="logoutBtn">${IC.logout}로그아웃</button>
-    </div></div>
-    <div class="section-label mt-24">${IC.user}내 프로필</div>
-    <div class="ml-card">
-      <div class="profile-hint">입력할수록 평가실이 나에게 맞게 조정됩니다</div>
-      <div class="form-group"><label class="form-label">보유 역량 · 전문성</label><input type="text" id="pSkills" class="ml-input-field" value="${p.skills||''}" placeholder="예) 마케팅, 교육, IT, 영업, 기획..."></div>
-      <div class="form-group mt-12"><label class="form-label">가용 초기 자본</label>
-        <select id="pCapital" class="ml-input-field"><option value="">선택해주세요</option>${['100만원 미만','100~500만원','500만~1천만원','1천만~5천만원','5천만원 이상'].map(v=>`<option value="${v}"${p.capital===v?' selected':''}>${v}</option>`).join('')}</select>
-      </div>
-      <div class="form-group mt-12"><label class="form-label">주당 가용 시간</label>
-        <select id="pTime" class="ml-input-field"><option value="">선택해주세요</option>${['5시간 미만 (부업)','5~15시간 (사이드프로젝트)','15~30시간 (병행창업)','풀타임 (전업)'].map(v=>`<option value="${v}"${p.time===v?' selected':''}>${v}</option>`).join('')}</select>
-      </div>
-      <div class="form-group mt-12"><label class="form-label">관심 산업</label><input type="text" id="pIndustry" class="ml-input-field" value="${p.industry||''}" placeholder="예) 식품, 교육, IT, 커머스, 콘텐츠..."></div>
-      <button class="btn-full mt-16" id="saveProfileBtn">${IC.save}프로필 저장</button>
-    </div>
-    <div class="section-label mt-24">${IC.trash}데이터 관리</div>
-    <div class="ml-card">
-      <button class="btn-full danger-btn" id="deleteAllBtn">${IC.trash}전체 데이터 삭제</button>
-      <div class="danger-notice">삭제된 데이터는 복구할 수 없습니다</div>
-    </div>`;
-
-  main.querySelector('#logoutBtn')?.addEventListener('click',async()=>{if(!confirm('로그아웃 하시겠습니까?'))return;await auth.signOut();});
-  main.querySelector('#saveProfileBtn')?.addEventListener('click',async()=>{
-    await saveProfile({skills:document.getElementById('pSkills')?.value||'',capital:document.getElementById('pCapital')?.value||'',time:document.getElementById('pTime')?.value||'',industry:document.getElementById('pIndustry')?.value||''});
-  });
-  main.querySelector('#deleteAllBtn')?.addEventListener('click',async()=>{
-    if(!confirm('모든 분석 데이터를 삭제합니다. 계속하시겠습니까?'))return;
-    try{
-      const s1=await db.collection(`users/${currentUser.uid}/analyses`).get();for(const d of s1.docs)await d.ref.delete();
-      const s2=await db.collection(`users/${currentUser.uid}/evaluations`).get();for(const d of s2.docs)await d.ref.delete();
-      showToast('모든 데이터가 삭제됐습니다');
-    }catch(e){showToast('삭제 실패',true);}
-  });
+function goPage(p) {
+  var tabs = document.querySelectorAll('.tab');
+  for (var i = 0; i < tabs.length; i++)
+    tabs[i].classList.toggle('on', tabs[i].dataset.p === p);
+  var main = document.getElementById('main');
+  main.scrollTop = 0;
+  var fn = {lens:pgLens, ideas:pgIdeas, eval:pgEval, cases:pgCases, settings:pgSettings}[p];
+  if (fn) fn(main);
 }
 
 // ── UTILS ─────────────────────────────────────────
-function fmtDate(ts){if(!ts)return'';const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('ko-KR',{month:'short',day:'numeric'});}
-function showToast(msg,isErr=false){
-  const t=document.createElement('div');
-  t.className='toast'+(isErr?' err':'');
-  t.innerHTML=(isErr?IC.x:IC.check)+msg;
+function fmtDate(ts) {
+  if (!ts) return '';
+  var d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString('ko-KR', {month:'short', day:'numeric'});
+}
+
+function toast(msg, isErr) {
+  var t = document.createElement('div');
+  t.className = 'toast' + (isErr ? ' red' : '');
+  t.textContent = msg;
   document.body.appendChild(t);
-  requestAnimationFrame(()=>t.classList.add('show'));
-  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300);},2500);
+  setTimeout(function() { t.classList.add('on'); }, 10);
+  setTimeout(function() {
+    t.classList.remove('on');
+    setTimeout(function() { t.parentNode && t.parentNode.removeChild(t); }, 300);
+  }, 2500);
+}
+
+function el(tag, cls, html) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (html !== undefined) e.innerHTML = html;
+  return e;
+}
+
+function copyText(txt, msg) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(txt).then(function() { toast(msg); }).catch(function() { fallbackCopy(txt, msg); });
+  } else { fallbackCopy(txt, msg); }
+}
+
+function fallbackCopy(txt, msg) {
+  var ta = document.createElement('textarea');
+  ta.value = txt;
+  ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
+  toast(msg);
+}
+
+function profileCtx() {
+  if (!profile) return '';
+  return '\n\n[내 프로필]\n역량: ' + (profile.skills||'미입력') +
+    '\n자본: ' + (profile.capital||'미입력') +
+    '\n관심산업: ' + (profile.industry||'미입력') +
+    '\n가용시간: ' + (profile.time||'미입력');
+}
+
+function aiLinksDiv() {
+  var d = el('div', 'ai-links');
+  var a1 = el('a', 'ai-link', 'ChatGPT 열기 →');
+  a1.href = 'https://chat.openai.com'; a1.target = '_blank';
+  var a2 = el('a', 'ai-link', 'Claude 열기 →');
+  a2.href = 'https://claude.ai'; a2.target = '_blank';
+  d.appendChild(a1); d.appendChild(a2);
+  return d;
+}
+
+// ── LENS ──────────────────────────────────────────
+function pgLens(main) {
+  main.innerHTML = '';
+
+  // Hero
+  var hero = el('div', 'hero');
+  hero.innerHTML = '<div class="hero-tag">돈 벌 생각</div><h1 class="hero-h">상품을 보는 눈이<br>달라지면 돈이 보입니다</h1>';
+  main.appendChild(hero);
+
+  // Input card
+  var card = el('div', 'card');
+
+  // Mode tabs
+  var mtabs = el('div', 'mtabs');
+  var modeNames = ['텍스트', '이미지', 'URL'];
+  var modeBtns = [];
+  for (var mi = 0; mi < modeNames.length; mi++) {
+    (function(i) {
+      var b = el('button', 'mtab' + (i === 0 ? ' on' : ''), modeNames[i]);
+      b.onclick = function() {
+        for (var j = 0; j < modeBtns.length; j++) modeBtns[j].classList.remove('on');
+        this.classList.add('on');
+        panels[0].style.display = i === 0 ? 'block' : 'none';
+        panels[1].style.display = i === 1 ? 'block' : 'none';
+        panels[2].style.display = i === 2 ? 'block' : 'none';
+      };
+      modeBtns.push(b);
+      mtabs.appendChild(b);
+    })(mi);
+  }
+  card.appendChild(mtabs);
+
+  // Text panel
+  var pText = el('div');
+  var ta = el('textarea', 'ta');
+  ta.id = 'lensTa';
+  ta.placeholder = '분석할 상품이나 서비스를 입력하세요\n예) 편의점 삼각김밥, 스타벅스 아메리카노...';
+  pText.appendChild(ta);
+
+  // Image panel
+  var pImg = el('div');
+  pImg.style.display = 'none';
+  var drop = el('div', 'imgdrop');
+  drop.id = 'imgDrop';
+  drop.innerHTML = '<div class="imgdrop-t">사진을 탭해서 업로드</div><div class="imgdrop-s">상품 사진, 영수증, 패키지 등</div>';
+  var fileInp = el('input');
+  fileInp.type = 'file'; fileInp.accept = 'image/*'; fileInp.style.display = 'none'; fileInp.id = 'imgFile';
+  drop.onclick = function() { fileInp.click(); };
+  fileInp.onchange = function() {
+    var f = this.files[0]; if (!f) return;
+    var r = new FileReader();
+    r.onload = function(e) {
+      drop.innerHTML = '<img src="' + e.target.result + '" style="max-width:100%;max-height:180px;border-radius:8px;object-fit:contain">';
+    };
+    r.readAsDataURL(f);
+  };
+  pImg.appendChild(drop); pImg.appendChild(fileInp);
+  var imgNote = el('div', '', '<small style="color:var(--text3);font-size:12px;line-height:1.5;display:block;margin-top:8px">AI 앱에서 사진을 직접 첨부한 후, 복사한 프롬프트를 함께 붙여넣어 주세요</small>');
+  pImg.appendChild(imgNote);
+
+  // URL panel
+  var pUrl = el('div');
+  pUrl.style.display = 'none';
+  var urlInp = el('input', 'ifield');
+  urlInp.id = 'lensUrl'; urlInp.type = 'url'; urlInp.placeholder = '쿠팡, 네이버쇼핑, 배민 등 URL 붙여넣기';
+  pUrl.appendChild(urlInp);
+
+  var panels = [pText, pImg, pUrl];
+  card.appendChild(pText); card.appendChild(pImg); card.appendChild(pUrl);
+
+  // Copy button
+  var copyBtn = el('button', 'btn-g', '프롬프트 복사하기');
+  copyBtn.onclick = function() {
+    var activeMode = 0;
+    for (var i = 0; i < modeBtns.length; i++) if (modeBtns[i].classList.contains('on')) activeMode = i;
+    var input = '';
+    if (activeMode === 0) input = (document.getElementById('lensTa').value || '').trim();
+    else if (activeMode === 1) input = '첨부한 상품 이미지';
+    else input = (document.getElementById('lensUrl').value || '').trim();
+    if (!input && activeMode !== 1) { toast('분석할 내용을 입력해주세요', true); return; }
+    var prompt = buildPrompt(input, activeMode);
+    copyText(prompt, '프롬프트 복사됨! AI에 붙여넣어 주세요');
+    analysis = { inputContent: input, productName: input };
+    pasteSection.style.display = 'block';
+    setTimeout(function() { pasteSection.scrollIntoView({ behavior: 'smooth' }); }, 200);
+  };
+  card.appendChild(copyBtn);
+
+  // AI guide
+  var guide = el('div', 'ai-guide');
+  guide.innerHTML = '<div class="ai-guide-t">이렇게 사용하세요</div>' +
+    '<div class="ai-step"><div class="ai-step-n">1</div>위 버튼으로 프롬프트 복사</div>' +
+    '<div class="ai-step"><div class="ai-step-n">2</div>ChatGPT 또는 Claude에 붙여넣기</div>' +
+    '<div class="ai-step"><div class="ai-step-n">3</div>AI 답변을 아래에 붙여넣기 후 저장</div>';
+  guide.appendChild(aiLinksDiv());
+  guide.innerHTML += '<div class="ai-photo">📷 이미지 탭 선택 시 — AI 앱에서 사진을 첨부한 후 프롬프트를 함께 붙여넣어 주세요</div>';
+  card.appendChild(guide);
+  main.appendChild(card);
+
+  // Hints
+  var slabel = el('div', 'slabel mt16', '이렇게 활용해보세요');
+  main.appendChild(slabel);
+  var hgrid = el('div', 'hgrid');
+  var hints = [
+    {emoji:'🍙', txt:'편의점 삼각김밥'},
+    {emoji:'☕', txt:'스타벅스 아메리카노'},
+    {emoji:'📱', txt:'배달앱 서비스'},
+    {emoji:'🧘', txt:'요가매트'}
+  ];
+  for (var hi = 0; hi < hints.length; hi++) {
+    (function(h) {
+      var hc = el('div', 'hcard');
+      hc.innerHTML = '<span class="hemoji">' + h.emoji + '</span><span class="htxt">' + h.txt + '</span>';
+      hc.onclick = function() {
+        for (var j = 0; j < modeBtns.length; j++) modeBtns[j].classList.remove('on');
+        modeBtns[0].classList.add('on');
+        panels[0].style.display = 'block';
+        panels[1].style.display = 'none';
+        panels[2].style.display = 'none';
+        document.getElementById('lensTa').value = h.txt;
+      };
+      hgrid.appendChild(hc);
+    })(hints[hi]);
+  }
+  main.appendChild(hgrid);
+
+  // Paste section
+  var pasteSection = el('div', 'mt20');
+  pasteSection.style.display = 'none';
+  pasteSection.innerHTML = '<div class="slabel">AI 분석 결과 붙여넣기</div>';
+  var pasteCard = el('div', 'card');
+  pasteCard.innerHTML = '<div class="paste-hint">AI가 분석한 결과를 아래에 붙여넣어 주세요</div>';
+  var pasteTa = el('textarea', 'ta md');
+  pasteTa.id = 'pasteTa';
+  pasteTa.placeholder = 'ChatGPT 또는 Claude의 분석 결과를 여기에 붙여넣어 주세요...';
+  var saveBtn = el('button', 'btn-g mt12', '분석 결과 저장하기');
+  saveBtn.onclick = function() {
+    var raw = (document.getElementById('pasteTa').value || '').trim();
+    if (!raw) { toast('AI 결과를 붙여넣어 주세요', true); return; }
+    var parsed = parseAnalysis(raw);
+    analysis = parsed;
+    renderAnalysis(resultDiv, parsed);
+    pasteSection.style.display = 'none';
+    toast('분석 결과가 저장됐습니다');
+  };
+  pasteCard.appendChild(pasteTa);
+  pasteCard.appendChild(saveBtn);
+  pasteSection.appendChild(pasteCard);
+  main.appendChild(pasteSection);
+
+  // Result div
+  var resultDiv = el('div', 'mt4');
+  main.appendChild(resultDiv);
+}
+
+function buildPrompt(input, mode) {
+  var modeLabel = mode === 1 ? '이미지 첨부 상품' : (mode === 2 ? 'URL: ' : '') + input;
+  return '당신은 비즈니스 역공학(reverse engineering) 전문가입니다.\n' +
+    '아래 상품/서비스를 분석하여 돈이 되는 기회를 발견해주세요.\n' +
+    '추정값은 반드시 ✅확인됨 / ⚠️추정 / ❓불확실 로 표기해주세요.\n\n' +
+    '[분석 대상]\n' + modeLabel + profileCtx() + '\n\n' +
+    '아래 6가지 항목을 순서대로 분석해주세요:\n\n' +
+    '1. 📋 상품 개요\n(무엇인가, 왜 만들어졌나 - 2~3문장)\n\n' +
+    '2. 🏭 생산 구조\n(어디서 어떻게 만들어지나, 원가 추정 - 신뢰도 표기)\n\n' +
+    '3. 🚚 유통 경로\n(제조→도매→소매 구조, 각 단계 마진 추정)\n\n' +
+    '4. 📊 시장 규모\n(국내/글로벌 추정)\n\n' +
+    '5. 💡 기회 포인트\n(개선/틈새/사업 기회 3가지를 각각 한 줄로)\n\n' +
+    '6. 💰 돈 되는 아이디어 3가지\n각 아이디어마다:\n- 아이디어명:\n- 설명: (2~3문장)\n- 수익 모델:';
+}
+
+function parseAnalysis(raw) {
+  function sect(rx) { var m = raw.match(rx); return m ? m[1].trim() : ''; }
+  var overview  = sect(/1\.\s*📋[^\n]*\n([\s\S]*?)(?=2\.|$)/);
+  var production= sect(/2\.\s*🏭[^\n]*\n([\s\S]*?)(?=3\.|$)/);
+  var distrib   = sect(/3\.\s*🚚[^\n]*\n([\s\S]*?)(?=4\.|$)/);
+  var market    = sect(/4\.\s*📊[^\n]*\n([\s\S]*?)(?=5\.|$)/);
+  var oppRaw    = sect(/5\.\s*💡[^\n]*\n([\s\S]*?)(?=6\.|$)/);
+  var opps = oppRaw.split('\n').map(function(l) { return l.replace(/^[-•*\d.]+\s*/, '').trim(); }).filter(function(l) { return l.length > 5; }).slice(0, 3);
+  var ideaRaw = sect(/6\.\s*💰[^\n]*\n([\s\S]*?)$/);
+  var ideas = [];
+  if (ideaRaw) {
+    var blocks = ideaRaw.split(/(?=아이디어명[：:])/);
+    for (var i = 0; i < blocks.length; i++) {
+      var b = blocks[i];
+      var tm = b.match(/아이디어명[：:]\s*([^\n]+)/);
+      var dm = b.match(/설명[：:]\s*([\s\S]*?)(?=수익 모델|$)/);
+      var rm = b.match(/수익 모델[：:]\s*([^\n]+)/);
+      if (tm) ideas.push({ title: tm[1].trim(), desc: dm ? dm[1].trim() : '', rev: rm ? rm[1].trim() : '' });
+    }
+  }
+  return {
+    productName: analysis ? analysis.inputContent : '분석 결과',
+    inputContent: analysis ? analysis.inputContent : '',
+    overview: overview, production: production,
+    distribution: distrib, market: market,
+    opportunities: opps, ideas: ideas,
+    rawText: raw,
+    reliabilityNote: 'AI 분석 결과입니다. 중요한 의사결정 전 수치를 직접 검증해주세요.'
+  };
+}
+
+function renderAnalysis(container, r) {
+  container.innerHTML = '';
+  var titleRow = el('div', 'rtitle-row mt16');
+  titleRow.innerHTML = '<div class="rname">' + (r.productName || '분석 결과') + '</div><span class="rtag">AI 분석</span>';
+  container.appendChild(titleRow);
+
+  var sects = [
+    { label: '📋 상품 개요', val: r.overview },
+    { label: '🏭 생산 구조', val: r.production },
+    { label: '🚚 유통 경로', val: r.distribution },
+    { label: '📊 시장 규모', val: r.market }
+  ];
+  for (var i = 0; i < sects.length; i++) {
+    if (!sects[i].val) continue;
+    var c = el('div', 'card');
+    c.innerHTML = '<div class="clabel">' + sects[i].label + '</div><div class="cbody">' + sects[i].val + '</div>';
+    container.appendChild(c);
+  }
+
+  if (r.opportunities && r.opportunities.length) {
+    var oc = el('div', 'card');
+    oc.innerHTML = '<div class="clabel">💡 기회 포인트</div>';
+    for (var oi = 0; oi < r.opportunities.length; oi++) {
+      var or2 = el('div', 'opp-row');
+      or2.innerHTML = '<div class="opp-dot"></div><div class="opp-txt">' + r.opportunities[oi] + '</div>';
+      oc.appendChild(or2);
+    }
+    container.appendChild(oc);
+  }
+
+  if (!r.overview && r.rawText) {
+    var rawC = el('div', 'card');
+    rawC.innerHTML = '<div class="clabel">AI 분석 결과</div><div class="cbody" style="white-space:pre-wrap;font-size:13px;line-height:1.7">' + r.rawText + '</div>';
+    container.appendChild(rawC);
+  }
+
+  // My idea
+  var myLabel = el('div', 'slabel mt20', '내 생각을 먼저 적어보세요');
+  container.appendChild(myLabel);
+  var myCard = el('div', 'card');
+  myCard.innerHTML = '<div class="paste-hint">이 상품에서 어떤 기회가 보이나요?</div>';
+  var myTa = el('textarea', 'ta sm');
+  myTa.id = 'myIdeaTa';
+  myTa.placeholder = '나만의 아이디어를 자유롭게 써보세요...';
+  var expandBtn = el('button', 'btn-gs mt12', '아이디어 확장 프롬프트 복사');
+  expandBtn.onclick = function() {
+    var myIdea = (document.getElementById('myIdeaTa').value || '').trim();
+    if (!myIdea) { toast('아이디어를 먼저 입력해주세요', true); return; }
+    var p = '당신은 비즈니스 아이디어 확장 전문가입니다.\n\n' +
+      '[상품]: ' + (analysis ? analysis.productName : '') + '\n' +
+      '[내 아이디어]: ' + myIdea + '\n\n' +
+      '아래 형식으로 확장해주세요:\n\n' +
+      '1. 확장된 아이디어 (3~4문장으로 구체화)\n' +
+      '2. 수익 모델 (어떻게 돈을 버는지)\n' +
+      '3. 첫 번째 실행 단계 (당장 할 수 있는 구체적 액션)';
+    copyText(p, '아이디어 확장 프롬프트 복사됨!');
+    if (analysis) analysis.myIdea = myIdea;
+    var expandResult = el('div', 'card mt12');
+    expandResult.innerHTML = '<div class="clabel">프롬프트 복사 완료</div><div class="cbody">AI에 붙여넣고 결과를 받아오세요</div>';
+    expandResult.appendChild(aiLinksDiv());
+    myCard.appendChild(expandResult);
+  };
+  myCard.appendChild(myTa);
+  myCard.appendChild(expandBtn);
+  container.appendChild(myCard);
+
+  // AI ideas
+  if (r.ideas && r.ideas.length) {
+    var idLabel = el('div', 'slabel mt20', '💰 AI 제안 아이디어');
+    container.appendChild(idLabel);
+    for (var ii = 0; ii < r.ideas.length; ii++) {
+      var idea = r.ideas[ii];
+      var iitem = el('div', 'idea-item');
+      iitem.innerHTML = '<div class="idea-n">' + (ii + 1) + '</div>' +
+        '<div class="idea-b"><div class="ititle">' + idea.title + '</div>' +
+        '<div class="idesc">' + idea.desc + '</div>' +
+        '<span class="irev">' + idea.rev + '</span></div>';
+      container.appendChild(iitem);
+    }
+  }
+
+  var warn = el('div', 'warn-strip', '⚠️ ' + r.reliabilityNote);
+  container.appendChild(warn);
+
+  var brow = el('div', 'btn-row');
+  var saveBtn2 = el('button', 'btn-g', '아이디어함 저장');
+  saveBtn2.onclick = function() { saveAnalysis(r); };
+  var evalBtn = el('button', 'btn-gs', '실현가능성 평가');
+  evalBtn.onclick = function() { goPage('eval'); };
+  brow.appendChild(saveBtn2); brow.appendChild(evalBtn);
+  container.appendChild(brow);
+}
+
+function saveAnalysis(r) {
+  if (!r) { toast('분석 결과가 없습니다', true); return; }
+  var data = {
+    productName: r.productName || '', inputContent: r.inputContent || '',
+    overview: r.overview || '', production: r.production || '',
+    distribution: r.distribution || '', market: r.market || '',
+    opportunities: r.opportunities || [], ideas: r.ideas || [],
+    rawText: r.rawText || '', myIdea: r.myIdea || '',
+    reliabilityNote: r.reliabilityNote || '',
+    savedAt: TS(), evaluated: false
+  };
+  db.collection('users/' + user.uid + '/analyses').add(data).then(function(ref) {
+    if (analysis) analysis.id = ref.id;
+    toast('아이디어함에 저장됐습니다 ✅');
+  }).catch(function(e) { toast('저장 실패: ' + e.message, true); });
+}
+
+// ── IDEAS ─────────────────────────────────────────
+function pgIdeas(main) {
+  main.innerHTML = '<div class="hero"><div class="hero-tag">아이디어함</div><h1 class="hero-h">저장된 분석</h1></div><div style="text-align:center;padding:28px;color:var(--text2);font-size:14px">불러오는 중...</div>';
+
+  db.collection('users/' + user.uid + '/analyses').orderBy('savedAt', 'desc').get().then(function(snap) {
+    var list = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+    main.innerHTML = '';
+
+    var hero = el('div', 'hero');
+    hero.innerHTML = '<div class="hero-tag">아이디어함</div><h1 class="hero-h">저장된 분석</h1>';
+    main.appendChild(hero);
+
+    var evalCount = list.filter(function(a) { return a.evaluated; }).length;
+    var topKeys = {};
+    list.forEach(function(a) { var k = (a.productName || '기타').split(' ')[0]; topKeys[k] = (topKeys[k] || 0) + 1; });
+    var top3 = Object.entries(topKeys).sort(function(a,b){return b[1]-a[1];}).slice(0,3).map(function(e){return e[0];}).join(' · ') || '-';
+
+    var srow = el('div', 'srow');
+    srow.innerHTML = '<div class="sbox"><div class="snum">' + list.length + '</div><div class="slbl">총 분석</div></div>' +
+      '<div class="sbox"><div class="snum">' + evalCount + '</div><div class="slbl">평가 완료</div></div>' +
+      '<div class="sbox" style="flex:1.4"><div class="snum sm">' + top3 + '</div><div class="slbl">관심 분야</div></div>';
+    main.appendChild(srow);
+
+    if (!list.length) {
+      var emp = el('div', 'empty');
+      emp.innerHTML = '<div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>' +
+        '<div class="empty-h">아직 저장된 분석이 없습니다</div>' +
+        '<div class="empty-d">렌즈 탭에서 상품을 분석하면<br>여기에 저장됩니다</div>';
+      var eb = el('button', 'empty-btn', '렌즈로 이동');
+      eb.onclick = function() { goPage('lens'); };
+      emp.appendChild(eb);
+      main.appendChild(emp);
+      return;
+    }
+
+    for (var li = 0; li < list.length; li++) {
+      (function(a) {
+        var icard = el('div', 'icard');
+        icard.innerHTML = '<div class="ic-row">' +
+          '<div><div class="ic-name">' + (a.productName || a.inputContent || '분석 결과') + '</div>' +
+          '<div class="ic-prev">' + ((a.opportunities && a.opportunities[0]) || (a.overview ? a.overview.slice(0,60) : '')) + '</div></div>' +
+          '<div class="ic-right">' +
+            (a.evaluated ? '<span class="badge g">평가완료</span>' : '') +
+            '<span class="ic-date">' + fmtDate(a.savedAt) + '</span>' +
+          '</div></div>';
+        var detail = el('div', 'ic-detail');
+        detail.id = 'dp-' + a.id;
+        if (a.overview) detail.innerHTML += '<div class="dk">개요</div><div class="dv">' + a.overview + '</div>';
+        if (a.myIdea)   detail.innerHTML += '<div class="dk">내 아이디어</div><div class="dv hl">' + a.myIdea + '</div>';
+        var dact = el('div', 'dact');
+        var evalBtn = el('button', 'btn-sm-g', '📊 평가하기');
+        evalBtn.onclick = function(e) {
+          e.stopPropagation();
+          analysis = a;
+          goPage('eval');
+        };
+        var delBtn = el('button', 'btn-sm-r', '🗑️ 삭제');
+        delBtn.onclick = function(e) {
+          e.stopPropagation();
+          if (!confirm('삭제하시겠습니까?')) return;
+          db.collection('users/' + user.uid + '/analyses').doc(a.id).delete().then(function() {
+            toast('삭제됐습니다');
+            pgIdeas(main);
+          }).catch(function() { toast('삭제 실패', true); });
+        };
+        dact.appendChild(evalBtn); dact.appendChild(delBtn);
+        detail.appendChild(dact);
+        icard.appendChild(detail);
+        icard.onclick = function() {
+          var dp = document.getElementById('dp-' + a.id);
+          if (dp) dp.style.display = dp.style.display === 'block' ? 'none' : 'block';
+        };
+        main.appendChild(icard);
+      })(list[li]);
+    }
+  }).catch(function(e) {
+    main.innerHTML += '<div class="card" style="color:var(--danger);text-align:center">' + e.message + '</div>';
+  });
+}
+
+// ── EVAL ──────────────────────────────────────────
+function pgEval(main) {
+  main.innerHTML = '';
+  var hero = el('div', 'hero');
+  hero.innerHTML = '<div class="hero-tag">평가실</div><h1 class="hero-h">실현가능성 평가</h1>';
+  main.appendChild(hero);
+
+  if (!analysis) {
+    var emp = el('div', 'empty');
+    emp.innerHTML = '<div class="empty-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>' +
+      '<div class="empty-h">평가할 아이디어를 선택해주세요</div>' +
+      '<div class="empty-d">아이디어함에서 선택하거나<br>렌즈 분석 후 바로 평가할 수 있습니다</div>';
+    var eb = el('button', 'empty-btn', '아이디어함으로');
+    eb.onclick = function() { goPage('ideas'); };
+    emp.appendChild(eb);
+    main.appendChild(emp);
+    return;
+  }
+
+  var selbar = el('div', 'selbar');
+  selbar.innerHTML = '<div class="selbar-lbl">평가 대상</div><div class="selbar-name">' + (analysis.productName || analysis.inputContent || '분석 결과') + '</div>';
+  main.appendChild(selbar);
+
+  if (!profile) {
+    var notice = el('div', 'notice');
+    notice.innerHTML = '<div>⚠️</div><div><div class="notice-t">프로필을 설정하면 더 정확합니다</div>' +
+      '<div class="notice-d">나의 역량, 자본을 입력하면 개인화된 평가를 받을 수 있어요</div>';
+    var na = el('button', 'notice-a', '프로필 설정하기 →');
+    na.onclick = function() { goPage('settings'); };
+    notice.querySelector('div:last-child').appendChild(na);
+    main.appendChild(notice);
+  }
+
+  var metaCard = el('div', 'card', '<div style="font-size:14px;font-weight:700;margin-bottom:8px;text-align:center">5가지 항목으로 평가합니다</div>');
+  var etags = el('div', 'etags');
+  ['시장성','실행 난이도','초기 자본','경쟁 강도','나의 적합도'].forEach(function(t) {
+    etags.innerHTML += '<span class="etag">' + t + '</span>';
+  });
+  metaCard.appendChild(etags);
+  main.appendChild(metaCard);
+
+  var copyBtn = el('button', 'btn-g', '평가 프롬프트 복사하기');
+  main.appendChild(copyBtn);
+
+  var pasteArea = el('div', 'mt16');
+  pasteArea.style.display = 'none';
+  main.appendChild(pasteArea);
+
+  var displayResult = el('div');
+  main.appendChild(displayResult);
+
+  copyBtn.onclick = function() {
+    var p = '당신은 비즈니스 아이디어 실현가능성 평가 전문가입니다.\n\n' +
+      '[분석 대상]: ' + (analysis.productName || '') + '\n' +
+      '[개요]: ' + (analysis.overview || '') + '\n' +
+      '[기회 포인트]: ' + ((analysis.opportunities || []).join(', ')) + profileCtx() + '\n\n' +
+      '아래 형식으로 평가해주세요:\n\n' +
+      '## 실현가능성 평가\n\n' +
+      '**종합 등급**: S/A/B/C 중 하나 (S:90↑ A:75↑ B:60↑ C:60↓)\n' +
+      '**총점**: 00점 / 100점\n\n' +
+      '### 항목별 점수 (각 20점 만점)\n' +
+      '1. 시장성: 00점 - (이유)\n' +
+      '2. 실행 난이도: 00점 - (이유)\n' +
+      '3. 초기 자본: 00점 - (이유)\n' +
+      '4. 경쟁 강도: 00점 - (이유)\n' +
+      '5. 나의 적합도: 00점 - (이유)\n\n' +
+      '### 종합 평가\n(2~3문장)\n\n' +
+      '### 강점\n(가장 유리한 점)\n\n' +
+      '### 약점\n(가장 보완해야 할 점)\n\n' +
+      '### 첫 번째 실행 액션\n(당장 할 수 있는 구체적 액션 1가지)';
+    copyText(p, '평가 프롬프트 복사됨!');
+    pasteArea.innerHTML = '<div class="slabel">AI 평가 결과 붙여넣기</div>';
+    var pc = el('div', 'card');
+    var pta = el('textarea', 'ta md');
+    pta.id = 'evalPasteTa';
+    pta.placeholder = 'AI 평가 결과를 여기에 붙여넣어 주세요...';
+    var saveBtn = el('button', 'btn-g mt12', '평가 결과 저장하기');
+    saveBtn.onclick = function() {
+      var raw = (document.getElementById('evalPasteTa').value || '').trim();
+      if (!raw) { toast('AI 평가 결과를 붙여넣어 주세요', true); return; }
+      var gradeM = raw.match(/종합 등급[^\n]*?([SABC])/);
+      var totalM = raw.match(/총점[^\n]*?(\d+)/);
+      var grade = gradeM ? gradeM[1] : 'B';
+      var total = totalM ? parseInt(totalM[1]) : 0;
+      var gc = {S:'#05C072', A:'#4CAF50', B:'#F59E0B', C:'#EF4444'}[grade] || '#05C072';
+      displayResult.innerHTML = '';
+      var gb = el('div', 'grade-box mt16');
+      gb.style.borderColor = gc + '40';
+      gb.style.background  = gc + '0A';
+      gb.innerHTML = '<div class="grade-ltr" style="color:' + gc + '">' + grade + '</div>' +
+        '<div class="grade-pts" style="color:' + gc + '">' + total + '점 <span class="grade-max">/ 100점</span></div>';
+      displayResult.appendChild(gb);
+      var rc = el('div', 'card mt12');
+      rc.innerHTML = '<div class="clabel">AI 평가 전문</div><div class="cbody" style="white-space:pre-wrap;font-size:13px;line-height:1.7">' + raw + '</div>';
+      displayResult.appendChild(rc);
+      var brow = el('div', 'btn-row');
+      var draftBtn = el('button', 'btn-g', '사업 초안 생성');
+      draftBtn.onclick = copyDraftPrompt;
+      var casesBtn = el('button', 'btn-gs', '유사 사례 탐구');
+      casesBtn.onclick = function() { goPage('cases'); };
+      brow.appendChild(draftBtn); brow.appendChild(casesBtn);
+      displayResult.appendChild(brow);
+      var draftDiv = el('div');
+      displayResult.appendChild(draftDiv);
+      draftBtn.onclick = function() { copyDraftPrompt(draftDiv); };
+      pasteArea.style.display = 'none';
+      toast('평가 결과가 저장됐습니다 ✅');
+      if (user && analysis && analysis.id) {
+        db.collection('users/' + user.uid + '/evaluations').add({
+          analysisId: analysis.id, productName: analysis.productName,
+          grade: grade, total: total, rawText: raw, createdAt: TS()
+        }).catch(function(){});
+        db.collection('users/' + user.uid + '/analyses').doc(analysis.id).update({ evaluated: true }).catch(function(){});
+      }
+    };
+    pc.appendChild(pta);
+    pc.appendChild(aiLinksDiv());
+    pc.appendChild(saveBtn);
+    pasteArea.appendChild(pc);
+    pasteArea.style.display = 'block';
+  };
+}
+
+function copyDraftPrompt(draftDiv) {
+  var p = '당신은 1페이지 사업 초안 작성 전문가입니다.\n\n' +
+    '[상품/서비스]: ' + (analysis ? analysis.productName || '' : '') + '\n' +
+    '[기회 포인트]: ' + (analysis ? (analysis.opportunities || []).join(', ') : '') + '\n' +
+    '[아이디어]: ' + (analysis ? (analysis.ideas || []).map(function(i){return i.title||'';}).join(', ') : '') + '\n\n' +
+    '아래 형식으로 작성해주세요:\n\n' +
+    '## 사업 초안\n\n' +
+    '**사업명**: \n**한줄 정의**: ""\n\n---\n' +
+    '- 타깃 고객:\n- 핵심 가치:\n- 수익 모델:\n- 예상 초기 투자금:\n\n---\n' +
+    '### 첫 90일 실행 계획\n- 1개월차:\n- 2개월차:\n- 3개월차:';
+  copyText(p, '사업 초안 프롬프트 복사됨!');
+  if (!draftDiv) return;
+  draftDiv.innerHTML = '';
+  var dc = el('div', 'card mt12');
+  dc.innerHTML = '<div class="clabel">사업 초안</div><div class="paste-hint">AI에 붙여넣고 결과를 받아오세요</div>';
+  dc.appendChild(aiLinksDiv());
+  var dta = el('textarea', 'ta md mt12');
+  dta.id = 'draftPasteTa';
+  dta.placeholder = 'AI가 작성한 사업 초안을 붙여넣어 주세요...';
+  var dsave = el('button', 'btn-gs mt12', '초안 저장하기');
+  dsave.onclick = function() {
+    var raw = (document.getElementById('draftPasteTa').value || '').trim();
+    if (!raw) { toast('초안을 붙여넣어 주세요', true); return; }
+    var saved = el('div', 'card green-border mt12');
+    saved.innerHTML = '<div class="clabel">저장된 사업 초안</div><div class="cbody" style="white-space:pre-wrap;font-size:13px;line-height:1.7">' + raw + '</div>';
+    dc.appendChild(saved);
+    toast('사업 초안이 저장됐습니다 ✅');
+  };
+  dc.appendChild(dta);
+  dc.appendChild(dsave);
+  draftDiv.appendChild(dc);
+}
+
+// ── CASES ─────────────────────────────────────────
+function pgCases(main) {
+  main.innerHTML = '';
+  var hero = el('div', 'hero');
+  hero.innerHTML = '<div class="hero-tag">사례탐구</div><h1 class="hero-h">유사 사례</h1>';
+  main.appendChild(hero);
+
+  if (!analysis) {
+    var emp = el('div', 'empty');
+    emp.innerHTML = '<div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>' +
+      '<div class="empty-h">분석된 상품이 없습니다</div>' +
+      '<div class="empty-d">렌즈에서 상품을 분석하면<br>유사 사례를 탐구할 수 있습니다</div>';
+    var eb = el('button', 'empty-btn', '렌즈로 이동');
+    eb.onclick = function() { goPage('lens'); };
+    emp.appendChild(eb);
+    main.appendChild(emp);
+    return;
+  }
+
+  var selbar = el('div', 'selbar');
+  selbar.innerHTML = '<div class="selbar-lbl">분석 대상</div><div class="selbar-name">' + (analysis.productName || '') + '</div>';
+  main.appendChild(selbar);
+
+  var copyBtn = el('button', 'btn-g', '사례탐구 프롬프트 복사하기');
+  main.appendChild(copyBtn);
+
+  var pasteArea = el('div', 'mt16');
+  pasteArea.style.display = 'none';
+  main.appendChild(pasteArea);
+
+  var resultDiv = el('div');
+  main.appendChild(resultDiv);
+
+  copyBtn.onclick = function() {
+    var p = '당신은 비즈니스 사례 전문가입니다.\n아래와 관련된 국내외 성공/실패 사례를 4~5개 찾아주세요.\n\n' +
+      '[분석 대상]: ' + (analysis.productName || '') + '\n' +
+      '[기회 포인트]: ' + ((analysis.opportunities || []).join(', ')) + '\n' +
+      '[아이디어]: ' + ((analysis.ideas || []).map(function(i){return i.title||'';}).join(', ')) + '\n\n' +
+      '각 사례를 아래 형식으로 작성해주세요:\n\n' +
+      '### 사례 N: [회사/서비스명] (국내/해외 · 성공/실패)\n' +
+      '- 핵심 전략:\n- 성공/실패 이유:\n- 💡 내 아이디어에 주는 시사점:';
+    copyText(p, '사례탐구 프롬프트 복사됨!');
+    pasteArea.innerHTML = '<div class="slabel">AI 사례 결과 붙여넣기</div>';
+    var pc = el('div', 'card');
+    pc.appendChild(aiLinksDiv());
+    var pta = el('textarea', 'ta md mt12');
+    pta.id = 'casesPasteTa';
+    pta.placeholder = 'AI가 찾은 사례를 여기에 붙여넣어 주세요...';
+    var saveBtn = el('button', 'btn-g mt12', '사례 저장하기');
+    saveBtn.onclick = function() {
+      var raw = (document.getElementById('casesPasteTa').value || '').trim();
+      if (!raw) { toast('사례를 붙여넣어 주세요', true); return; }
+      resultDiv.innerHTML = '';
+      var rc = el('div', 'card green-border mt12');
+      rc.innerHTML = '<div class="clabel">저장된 사례</div><div class="cbody" style="white-space:pre-wrap;font-size:13px;line-height:1.7">' + raw + '</div>';
+      resultDiv.appendChild(rc);
+      pasteArea.style.display = 'none';
+      toast('사례가 저장됐습니다 ✅');
+    };
+    pc.appendChild(pta);
+    pc.appendChild(saveBtn);
+    pasteArea.appendChild(pc);
+    pasteArea.style.display = 'block';
+  };
+}
+
+// ── SETTINGS ──────────────────────────────────────
+function pgSettings(main) {
+  main.innerHTML = '';
+  var hero = el('div', 'hero');
+  hero.innerHTML = '<div class="hero-tag">설정</div><h1 class="hero-h">내 계정</h1>';
+  main.appendChild(hero);
+
+  var uname = (user && user.displayName) || (user && user.email && user.email.split('@')[0]) || '사용자';
+  var uemail = (user && user.email) || '';
+  var initial = uname.charAt(0).toUpperCase();
+  var p = profile || {};
+
+  var ucard = el('div', 'card');
+  ucard.innerHTML = '<div class="pcard"><div class="avatar">' + initial + '</div>' +
+    '<div style="flex:1;min-width:0"><div class="pname">' + uname + '</div><div class="pemail">' + uemail + '</div></div>' +
+    '<button class="logout-btn" id="logoutBtn">로그아웃</button></div>';
+  main.appendChild(ucard);
+
+  document.getElementById('logoutBtn').onclick = function() {
+    if (!confirm('로그아웃 하시겠습니까?')) return;
+    auth.signOut();
+  };
+
+  var plabel = el('div', 'slabel mt24', '내 프로필');
+  main.appendChild(plabel);
+
+  var pcard = el('div', 'card');
+  pcard.innerHTML = '<div style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.5">입력할수록 평가실이 나에게 맞게 조정됩니다</div>' +
+    '<div class="fgroup"><label>보유 역량 · 전문성</label><input id="pSkills" type="text" class="ifield" value="' + (p.skills||'') + '" placeholder="예) 마케팅, 교육, IT, 영업, 기획..."></div>' +
+    '<div class="fgroup"><label>가용 초기 자본</label><select id="pCapital" class="ifield">' +
+      '<option value="">선택해주세요</option>' +
+      ['100만원 미만','100~500만원','500만~1천만원','1천만~5천만원','5천만원 이상'].map(function(v){
+        return '<option value="' + v + '"' + (p.capital===v?' selected':'') + '>' + v + '</option>';
+      }).join('') + '</select></div>' +
+    '<div class="fgroup"><label>주당 가용 시간</label><select id="pTime" class="ifield">' +
+      '<option value="">선택해주세요</option>' +
+      ['5시간 미만 (부업)','5~15시간 (사이드프로젝트)','15~30시간 (병행창업)','풀타임 (전업)'].map(function(v){
+        return '<option value="' + v + '"' + (p.time===v?' selected':'') + '>' + v + '</option>';
+      }).join('') + '</select></div>' +
+    '<div class="fgroup"><label>관심 산업</label><input id="pIndustry" type="text" class="ifield" value="' + (p.industry||'') + '" placeholder="예) 식품, 교육, IT, 커머스, 콘텐츠..."></div>';
+
+  var saveBtn = el('button', 'btn-g', '프로필 저장');
+  saveBtn.onclick = function() {
+    saveProfile({
+      skills:   (document.getElementById('pSkills').value   || ''),
+      capital:  (document.getElementById('pCapital').value  || ''),
+      time:     (document.getElementById('pTime').value     || ''),
+      industry: (document.getElementById('pIndustry').value || '')
+    });
+  };
+  pcard.appendChild(saveBtn);
+  main.appendChild(pcard);
+
+  var dlabel = el('div', 'slabel mt24', '데이터 관리');
+  main.appendChild(dlabel);
+  var dcard = el('div', 'card');
+  var delBtn = el('button', 'btn-danger', '전체 데이터 삭제');
+  delBtn.onclick = function() {
+    if (!confirm('모든 분석 데이터를 삭제합니다. 계속하시겠습니까?')) return;
+    var col1 = db.collection('users/' + user.uid + '/analyses').get();
+    var col2 = db.collection('users/' + user.uid + '/evaluations').get();
+    Promise.all([col1, col2]).then(function(results) {
+      var dels = [];
+      results[0].docs.forEach(function(d) { dels.push(d.ref.delete()); });
+      results[1].docs.forEach(function(d) { dels.push(d.ref.delete()); });
+      return Promise.all(dels);
+    }).then(function() { toast('모든 데이터가 삭제됐습니다'); })
+      .catch(function() { toast('삭제 실패', true); });
+  };
+  dcard.appendChild(delBtn);
+  dcard.innerHTML += '<div class="danger-note">삭제된 데이터는 복구할 수 없습니다</div>';
+  main.appendChild(dcard);
 }
 </script>
 </body>
