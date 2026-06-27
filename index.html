@@ -715,6 +715,45 @@ select.ml-input-field { cursor: pointer; }
 .mt-24 { margin-top: 24px; }
 .mb-12 { margin-bottom: 12px; }
 
+.ai-guide-box {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px; margin-top: 12px;
+}
+.ai-guide-title {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700; color: var(--text2);
+  margin-bottom: 10px;
+}
+.ai-guide-title svg { width: 13px; height: 13px; stroke: var(--text2); }
+.ai-guide-steps { display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px; }
+.ai-guide-step {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--text2);
+}
+.step-num {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--green); color: #fff;
+  font-size: 11px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ai-guide-links {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.ai-link {
+  display: inline-block; font-size: 12px; font-weight: 700;
+  color: var(--indigo); background: var(--indigo-bg);
+  border-radius: 20px; padding: 5px 12px;
+  text-decoration: none; transition: opacity 0.2s;
+}
+.ai-link:active { opacity: 0.7; }
+.ai-photo-note {
+  font-size: 12px; color: var(--text3); margin-top: 10px;
+  padding-top: 10px; border-top: 1px solid var(--border);
+  line-height: 1.5;
+}
+.paste-hint { font-size: 13px; color: var(--text2); margin-bottom: 10px; line-height: 1.5; }
+
 /* RESPONSIVE */
 @media (min-width: 480px) {
   body { background: #E8EAF0; }
@@ -1033,10 +1072,28 @@ function renderLens(main) {
       <div id="modeUrl" style="display:none">
         <input type="url" id="urlInput" class="ml-input-field" placeholder="쿠팡, 네이버쇼핑, 배민 등 URL 붙여넣기">
       </div>
-      <button class="btn-full" id="analyzeBtn">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        분석 시작하기
+      <button class="btn-full" id="copyPromptBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        프롬프트 복사하기
       </button>
+      <div class="ai-guide-box">
+        <div class="ai-guide-title">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          이렇게 사용하세요
+        </div>
+        <div class="ai-guide-steps">
+          <div class="ai-guide-step"><span class="step-num">1</span><span>위 버튼으로 프롬프트 복사</span></div>
+          <div class="ai-guide-step"><span class="step-num">2</span><span>ChatGPT 또는 Claude에 붙여넣기</span></div>
+          <div class="ai-guide-step"><span class="step-num">3</span><span>AI 답변을 아래에 붙여넣기 후 저장</span></div>
+        </div>
+        <div class="ai-guide-links">
+          <a href="https://chat.openai.com" target="_blank" class="ai-link">ChatGPT 열기 →</a>
+          <a href="https://claude.ai" target="_blank" class="ai-link">Claude 열기 →</a>
+        </div>
+        <div class="ai-photo-note">
+          📷 사진 분석 시 — AI 앱에서 직접 사진을 첨부한 후, 복사한 프롬프트를 함께 붙여넣어 주세요
+        </div>
+      </div>
     </div>
 
     <div class="section-label">
@@ -1050,6 +1107,20 @@ function renderLens(main) {
       <div class="hint-card" data-hint="요가매트"><span class="hint-emoji">🧘</span><span class="hint-text">요가매트</span></div>
     </div>
     <div id="analysisResult"></div>
+    <div id="pasteResultSection" style="display:none">
+      <div class="section-label mt-20">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+        AI 분석 결과 붙여넣기
+      </div>
+      <div class="ml-card">
+        <div class="paste-hint">AI가 분석한 결과를 아래에 붙여넣어 주세요</div>
+        <textarea id="pasteInput" class="ml-textarea" style="min-height:160px" placeholder="ChatGPT 또는 Claude의 분석 결과를 여기에 붙여넣어 주세요..."></textarea>
+        <button class="btn-full mt-12" id="parsePasteBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          결과 저장하기
+        </button>
+      </div>
+    </div>
   `;
 
   // Mode tabs
@@ -1083,68 +1154,184 @@ function renderLens(main) {
   });
 
   // Analyze
-  document.getElementById('analyzeBtn').addEventListener('click', startAnalysis);
+  document.getElementById('copyPromptBtn').addEventListener('click', copyPrompt);
+
+  // 결과 붙여넣기 저장 버튼 (나중에 pasteResultSection이 표시될 때 연결)
+  document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'parsePasteBtn') {
+      const rawText = (document.getElementById('pasteInput')?.value||'').trim();
+      if (!rawText) { showToast('AI 결과를 붙여넣어 주세요', true); return; }
+      const result = parsePasteResult(rawText);
+      currentAnalysis = result;
+      const resultDiv = document.getElementById('analysisResult');
+      if (resultDiv) renderAnalysisResult(resultDiv, result);
+      document.getElementById('pasteResultSection').style.display = 'none';
+      showToast('분석 결과가 저장됐습니다 ✅');
+    }
+  });
 }
 
-async function startAnalysis() {
+function buildAnalysisPrompt(inputContent, inputType) {
+  const profileCtx = userProfile
+    ? `\n\n[사용자 프로필]\n- 보유 역량: ${userProfile.skills||'미입력'}\n- 가용 자본: ${userProfile.capital||'미입력'}\n- 관심 산업: ${userProfile.industry||'미입력'}\n- 가용 시간: ${userProfile.time||'미입력'}\n위 프로필을 기반으로 "나의 적합도" 분석 시 개인화된 평가를 해주세요.`
+    : '';
+
+  return `당신은 비즈니스 역공학(reverse engineering) 전문가입니다.
+아래 상품/서비스를 분석하여 돈이 되는 기회를 발견해주세요.
+모든 분석은 한국어로, 구체적 수치와 함께 제공하고
+추정값은 ✅확인됨 / ⚠️추정 / ❓불확실 로 표기해주세요.
+
+[분석 대상]
+${inputType==='url'?'URL: ':''}${inputContent}
+${profileCtx}
+
+아래 6가지 항목을 순서대로 분석해주세요:
+
+1. 📋 상품 개요
+(무엇인가, 왜 만들어졌나 - 2~3문장)
+
+2. 🏭 생산 구조
+(어디서 어떻게 만들어지나, 원가 추정 - 신뢰도 표기)
+
+3. 🚚 유통 경로
+(제조→도매→소매 구조, 각 단계 마진 추정)
+
+4. 📊 시장 규모
+(국내/글로벌 추정)
+
+5. 💡 기회 포인트
+(개선/틈새/사업 기회 3가지)
+
+6. 💰 돈 되는 아이디어 3가지
+각 아이디어마다:
+- 아이디어명:
+- 설명: (2~3문장)
+- 수익 모델:`;
+}
+
+function copyPrompt() {
   const activeMode = document.querySelector('.mode-tab.active')?.dataset.mode;
-  let inputContent='', inputType='text', imageBase64=null;
+  let inputContent = '';
 
   if (activeMode==='text') {
     inputContent = (document.getElementById('textInput')?.value||'').trim();
   } else if (activeMode==='image') {
-    const file = document.getElementById('imgFile')?.files[0];
-    if (!file) { showToast('이미지를 선택해주세요', true); return; }
-    inputContent = file.name; inputType='image';
-    imageBase64 = await fileToBase64(file);
+    inputContent = (document.getElementById('textInput')?.value||'').trim() || '업로드한 상품 이미지';
   } else {
     inputContent = (document.getElementById('urlInput')?.value||'').trim();
-    inputType='url';
   }
-  if (!inputContent) { showToast('분석할 내용을 입력해주세요', true); return; }
 
-  const resultDiv = document.getElementById('analysisResult');
-  const stepLabels = ['상품 개요 파악','생산 구조 분석','유통 경로 추적','시장 규모 추정','기회 포인트 탐색','아이디어 생성'];
-  const stepIcons = [
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`,
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`,
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`
-  ];
-
-  resultDiv.innerHTML = `<div class="loading-card mt-16">
-    <div class="loading-header"><div class="spinner"></div><div class="loading-title">AI가 분석하고 있습니다</div></div>
-    <div class="l-steps">${stepLabels.map((s,i)=>`<div class="l-step" id="ls${i}">${stepIcons[i]}${s}</div>`).join('')}</div>
-  </div>`;
-
-  stepLabels.forEach((_,i) => setTimeout(() => { const el=document.getElementById(`ls${i}`); if(el) el.classList.add('done'); }, (i+1)*700));
-
-  try {
-    const profileCtx = userProfile ? `\n사용자 프로필: 역량(${userProfile.skills||'미입력'}), 자본(${userProfile.capital||'미입력'}), 관심산업(${userProfile.industry||'미입력'}), 가용시간(${userProfile.time||'미입력'})` : '';
-    const messages = imageBase64
-      ? [{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:imageBase64}},{type:'text',text:`이 상품 이미지를 분석해주세요.${profileCtx}`}]}]
-      : [{role:'user',content:`분석 대상: ${inputType==='url'?'URL: ':''}${inputContent}${profileCtx}`}];
-
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-6', max_tokens:2000,
-        system:`비즈니스 역공학 전문가입니다. 상품/서비스를 분석하여 돈이 되는 기회를 발견하도록 도와줍니다. 한국어로, 구체적 수치와 함께 제공하세요. 추정값은 ✅확인됨/⚠️추정/❓불확실로 표기. 순수 JSON만 출력:
-{"productName":"상품명","overview":"상품 개요 2~3문장","production":"생산 구조 및 원가 추정","distribution":"유통 경로 및 마진 구조","market":"시장 규모 추정","opportunities":["기회1","기회2","기회3"],"ideas":[{"title":"아이디어","description":"설명 2~3문장","revenueModel":"수익 모델"}],"reliabilityNote":"신뢰도 코멘트 1문장"}`,
-        messages
-      })
-    });
-    const data = await res.json();
-    let text = (data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
-    const result = JSON.parse(text);
-    currentAnalysis = {...result, inputContent, inputType, timestamp: new Date().toISOString()};
-    renderAnalysisResult(resultDiv, result);
-  } catch(e) {
-    resultDiv.innerHTML = `<div class="ml-card error-state mt-16"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div class="error-msg">분석 중 오류가 발생했습니다</div><div class="error-detail">${e.message}</div></div>`;
+  if (!inputContent || inputContent==='업로드한 상품 이미지' && activeMode!=='image') {
+    showToast('분석할 내용을 입력해주세요', true); return;
   }
+
+  const prompt = buildAnalysisPrompt(inputContent, activeMode);
+  navigator.clipboard.writeText(prompt).then(() => {
+    showToast('프롬프트가 복사됐습니다! AI에 붙여넣어 주세요');
+    // 결과 붙여넣기 영역 표시
+    const pasteSection = document.getElementById('pasteResultSection');
+    if (pasteSection) pasteSection.style.display = 'block';
+    // currentAnalysis에 inputContent 저장
+    currentAnalysis = { inputContent, inputType: activeMode, productName: inputContent };
+  }).catch(() => {
+    // clipboard API 실패시 fallback
+    const ta = document.createElement('textarea');
+    ta.value = prompt;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('프롬프트가 복사됐습니다! AI에 붙여넣어 주세요');
+    const pasteSection = document.getElementById('pasteResultSection');
+    if (pasteSection) pasteSection.style.display = 'block';
+    currentAnalysis = { inputContent, inputType: activeMode, productName: inputContent };
+  });
 }
+
+function parsePasteResult(rawText) {
+  // AI 결과를 파싱해서 구조화
+  const result = {
+    productName: currentAnalysis?.inputContent || '분석 결과',
+    inputContent: currentAnalysis?.inputContent || '',
+    inputType: currentAnalysis?.inputType || 'text',
+    overview: '', production: '', distribution: '', market: '',
+    opportunities: [], ideas: [],
+    reliabilityNote: '사용자가 AI로부터 직접 받은 분석 결과입니다.',
+    rawText: rawText,
+    timestamp: new Date().toISOString()
+  };
+
+  // 섹션 추출
+  const sections = {
+    overview: /1\.\s*📋[^
+]*
+([\s\S]*?)(?=2\.|$)/,
+    production: /2\.\s*🏭[^
+]*
+([\s\S]*?)(?=3\.|$)/,
+    distribution: /3\.\s*🚚[^
+]*
+([\s\S]*?)(?=4\.|$)/,
+    market: /4\.\s*📊[^
+]*
+([\s\S]*?)(?=5\.|$)/,
+  };
+
+  for (const [key, regex] of Object.entries(sections)) {
+    const match = rawText.match(regex);
+    if (match) result[key] = match[1].trim();
+  }
+
+  // 기회 포인트 파싱
+  const oppMatch = rawText.match(/5\.\s*💡[^
+]*
+([\s\S]*?)(?=6\.|$)/);
+  if (oppMatch) {
+    result.opportunities = oppMatch[1].split('\n')
+      .map(l => l.replace(/^[-•*\d.]+\s*/, '').trim())
+      .filter(l => l.length > 10)
+      .slice(0, 3);
+  }
+
+  // 아이디어 파싱
+  const ideaMatch = rawText.match(/6\.\s*💰[^
+]*
+([\s\S]*?)$/);
+  if (ideaMatch) {
+    const ideaText = ideaMatch[1];
+    const ideaBlocks = ideaText.split(/(?=아이디어명:|[-•]\s*아이디어)/);
+    ideaBlocks.forEach(block => {
+      const titleMatch = block.match(/아이디어명[：:]?\s*([^
+]+)/);
+      const descMatch = block.match(/설명[：:]?\s*([\s\S]*?)(?=수익 모델|$)/);
+      const revenueMatch = block.match(/수익 모델[：:]?\s*([^
+]+)/);
+      if (titleMatch) {
+        result.ideas.push({
+          title: titleMatch[1].trim(),
+          description: descMatch ? descMatch[1].trim() : '',
+          revenueModel: revenueMatch ? revenueMatch[1].trim() : ''
+        });
+      }
+    });
+  }
+
+  // 파싱 실패 시 rawText 전체를 overview로
+  if (!result.overview && !result.opportunities.length) {
+    result.overview = rawText.slice(0, 500);
+  }
+
+  return result;
+}
+
+async function startAnalysis() {
+  // 이 함수는 이제 copyPrompt로 대체됨 (하위 호환용으로 유지)
+  copyPrompt();
+}
+
+// 실제 copyPrompt 함수는 위에서 정의됨
+// 버튼 이벤트는 renderLens에서 연결
+
 
 function renderAnalysisResult(container, r) {
   container.innerHTML = `
@@ -1201,34 +1388,7 @@ function renderAnalysisResult(container, r) {
   document.getElementById('evalBtn').addEventListener('click', function() { goPage('eval'); });
 }
 
-async function expandIdea() {
-  const myIdea = (document.getElementById('myIdeaInput')?.value||'').trim();
-  if (!myIdea) { showToast('아이디어를 먼저 입력해주세요', true); return; }
-  const div = document.getElementById('myIdeaExpanded');
-  div.innerHTML = `<div class="ml-card loading-inline">아이디어 확장 중...</div>`;
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-6', max_tokens:800,
-        system:`비즈니스 아이디어 확장 전문가. JSON만 출력: {"expanded":"확장 설명 3~4문장","revenueModel":"수익 모델","firstStep":"첫 번째 실행 단계"}`,
-        messages:[{role:'user',content:`상품: ${currentAnalysis?.productName}\n내 아이디어: ${myIdea}`}]
-      })
-    });
-    const data = await res.json();
-    let text = (data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
-    const r = JSON.parse(text);
-    div.innerHTML = `<div class="ml-card accent">
-      <div class="card-eyebrow"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI가 확장한 내 아이디어</div>
-      <div class="card-body">${r.expanded}</div>
-      <div class="revenue-tag mt-8"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>${r.revenueModel}</div>
-      <div style="font-size:13px;color:var(--green);font-weight:600;margin-top:8px">🚀 첫 단계: ${r.firstStep}</div>
-    </div>`;
-    if (currentAnalysis) currentAnalysis.myIdea = myIdea;
-  } catch(e) {
-    div.innerHTML = `<div class="ml-card error-state"><div class="error-msg">${e.message}</div></div>`;
-  }
-}
+// expandIdea is defined above as non-async version
 
 async function saveAnalysis() {
   if (!currentAnalysis) { showToast('분석 결과가 없습니다', true); return; }
@@ -1344,229 +1504,120 @@ function renderEval(main) {
   document.getElementById('startEvalBtn').addEventListener('click', runEval);
 }
 
-async function runEval() {
+function runEval() {
   const div = document.getElementById('evalResult');
-  div.innerHTML = `<div class="ml-card loading-inline mt-16"><div class="spinner"></div>실현가능성 평가 중...</div>`;
-  try {
-    const profileCtx = userProfile ? `사용자: 역량(${userProfile.skills}), 자본(${userProfile.capital}), 산업(${userProfile.industry}), 시간(${userProfile.time})` : '일반 기준 평가';
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-6', max_tokens:1500,
-        system:`비즈니스 실현가능성 평가 전문가. ${profileCtx}. JSON만 출력:
-{"scores":{"market":{"score":0,"reason":""},"execution":{"score":0,"reason":""},"capital":{"score":0,"reason":""},"competition":{"score":0,"reason":""},"fit":{"score":0,"reason":""}},"total":0,"grade":"S|A|B|C","summary":"2문장","strengthPoint":"","weakPoint":"","nextAction":"구체적 첫 액션"}`,
-        messages:[{role:'user',content:`상품: ${currentAnalysis.productName}\n개요: ${currentAnalysis.overview}\n기회: ${(currentAnalysis.opportunities||[]).join(', ')}`}]
-      })
-    });
-    const data = await res.json();
-    let text = (data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
-    const ev = JSON.parse(text);
-    const gc = {S:'#05C072',A:'#4CAF50',B:'#F59E0B',C:'#EF4444'}[ev.grade]||'#05C072';
-    const labels = {market:'시장성',execution:'실행 난이도',capital:'초기 자본',competition:'경쟁 강도',fit:'나의 적합도'};
+  const profileCtx = userProfile
+    ? `\n\n[내 프로필]\n- 역량: ${userProfile.skills||'미입력'}\n- 자본: ${userProfile.capital||'미입력'}\n- 관심산업: ${userProfile.industry||'미입력'}\n- 가용시간: ${userProfile.time||'미입력'}`
+    : '';
+
+  const prompt = `당신은 비즈니스 아이디어 실현가능성 평가 전문가입니다.
+아래 아이디어를 5가지 항목으로 평가해주세요.
+
+[분석 대상]: ${currentAnalysis?.productName||''}
+[개요]: ${currentAnalysis?.overview||''}
+[기회 포인트]: ${(currentAnalysis?.opportunities||[]).join(', ')}${profileCtx}
+
+아래 형식으로 평가해주세요:
+
+## 실현가능성 평가
+
+**종합 등급**: S/A/B/C 중 하나 (S: 90점↑, A: 75점↑, B: 60점↑, C: 60점↓)
+**총점**: 00점 / 100점
+
+### 항목별 점수 (각 20점 만점)
+1. 시장성: 00점 - (이유)
+2. 실행 난이도: 00점 - (이유)
+3. 초기 자본: 00점 - (이유)
+4. 경쟁 강도: 00점 - (이유)
+5. 나의 적합도: 00점 - (이유)
+
+### 종합 평가
+(2~3문장)
+
+### 강점
+(가장 유리한 점)
+
+### 약점
+(가장 보완해야 할 점)
+
+### 첫 번째 실행 액션
+(당장 할 수 있는 구체적 액션 1가지)`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    showToast('평가 프롬프트 복사됨! AI에 붙여넣어 주세요');
     div.innerHTML = `
-      <div class="grade-hero mt-16" style="border-color:${gc}30;background:${gc}08">
-        <div class="grade-letter" style="color:${gc}">${ev.grade}</div>
-        <div class="grade-pts" style="color:${gc}">${ev.total}점 <span class="grade-pts-max">/ 100점</span></div>
-        <div class="grade-summary">${ev.summary}</div>
+      <div class="ml-card mt-16">
+        <div class="card-eyebrow"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>평가 프롬프트 복사 완료</div>
+        <div class="card-body">AI에 붙여넣고 결과를 받아오세요.<br>결과를 아래에 붙여넣으면 저장됩니다.</div>
+        <div class="ai-guide-links mt-8">
+          <a href="https://chat.openai.com" target="_blank" class="ai-link">ChatGPT 열기 →</a>
+          <a href="https://claude.ai" target="_blank" class="ai-link">Claude 열기 →</a>
+        </div>
       </div>
-      <canvas id="radarCanvas" style="max-width:280px;width:100%;margin:0 auto 8px;display:block"></canvas>
-      <div class="section-label mt-16">항목별 점수</div>
-      ${Object.entries(ev.scores).map(([k,v])=>`
-        <div class="ml-card score-card">
-          <div class="score-header">
-            <div class="score-label-text">${labels[k]}</div>
-            <div class="score-pts" style="color:${gc}">${v.score}<span class="score-pts-max">/20</span></div>
-          </div>
-          <div class="score-bar-bg"><div class="score-bar-fill" style="width:${v.score/20*100}%;background:${gc}"></div></div>
-          <div class="score-reason-text">${v.reason}</div>
-        </div>`).join('')}
-      <div class="section-label mt-20">종합 인사이트</div>
+      <div class="section-label mt-16">AI 평가 결과 붙여넣기</div>
       <div class="ml-card">
-        <div class="insight-item"><div class="insight-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke:var(--green)"><polyline points="20 6 9 17 4 12"/></svg></div><span style="color:#065F46">${ev.strengthPoint}</span></div>
-        <div class="insight-divider"></div>
-        <div class="insight-item"><div class="insight-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke:var(--amber)"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><span style="color:#92400E">${ev.weakPoint}</span></div>
-        <div class="insight-divider"></div>
-        <div class="insight-item"><div class="insight-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke:var(--indigo)"><polygon points="5 3 19 12 5 21 5 3"/></svg></div><span style="color:#1E3A8A">${ev.nextAction}</span></div>
+        <textarea id="evalPasteInput" class="ml-textarea" style="min-height:160px" placeholder="AI 평가 결과를 여기에 붙여넣어 주세요..."></textarea>
+        <button class="btn-full mt-12" id="saveEvalBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          평가 결과 저장하기
+        </button>
       </div>
-      <div class="btn-row mt-16">
-        <button class="btn-full" id="draftBtn">사업 초안 생성</button>
-        <button class="btn-full secondary" id="casesBtn">유사 사례 탐구</button>
-      </div>
-      <div id="draftResult"></div>
+      <div id="evalDisplayResult"></div>
     `;
-    setTimeout(() => {
-      const ctx = document.getElementById('radarCanvas')?.getContext('2d');
-      if (ctx) {
-        if (radarChart) radarChart.destroy();
-        radarChart = new Chart(ctx, {
-          type:'radar',
-          data:{ labels:['시장성','실행','자본','경쟁','적합도'], datasets:[{ data:Object.values(ev.scores).map(s=>s.score), backgroundColor:gc+'22', borderColor:gc, pointBackgroundColor:gc, pointRadius:4, borderWidth:2 }] },
-          options:{ scales:{ r:{ min:0, max:20, ticks:{color:'#999',font:{size:10},backdropColor:'transparent'}, grid:{color:'#ECEEF4'}, pointLabels:{color:'#0F1117',font:{size:12,weight:'600'}} } }, plugins:{legend:{display:false}}, elements:{line:{tension:0.2}} }
-        });
-      }
-    }, 100);
-    document.getElementById('draftBtn').addEventListener('click', genDraft);
-    document.getElementById('casesBtn').addEventListener('click', () => goPage('cases'));
-    if (currentUser && currentAnalysis.id) {
-      try {
-        await db.collection(`users/${currentUser.uid}/evaluations`).add({ analysisId:currentAnalysis.id, productName:currentAnalysis.productName, scores:ev.scores, total:ev.total, grade:ev.grade, createdAt:firebase.firestore.FieldValue.serverTimestamp() });
-        await db.collection(`users/${currentUser.uid}/analyses`).doc(currentAnalysis.id).update({evaluated:true});
-      } catch(e) {}
-    }
-  } catch(e) {
-    div.innerHTML = `<div class="ml-card error-state mt-16"><div class="error-msg">평가 실패: ${e.message}</div></div>`;
-  }
+    document.getElementById('saveEvalBtn').addEventListener('click', saveEvalResult);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = prompt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('평가 프롬프트 복사됨!');
+  });
 }
 
-async function genDraft() {
-  const div = document.getElementById('draftResult');
-  div.innerHTML = `<div class="ml-card loading-inline mt-16"><div class="spinner"></div>사업 초안 작성 중...</div>`;
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-6', max_tokens:1200,
-        system:`사업 초안 전문가. JSON만 출력: {"bizName":"","oneLiner":"","target":"","value":"","revenue":"","plan90":["1개월차","2개월차","3개월차"],"investment":""}`,
-        messages:[{role:'user',content:`상품: ${currentAnalysis.productName}\n기회: ${(currentAnalysis.opportunities||[]).join(', ')}\n아이디어: ${(currentAnalysis.ideas||[]).map(i=>i.title).join(', ')}`}]
-      })
-    });
-    const data = await res.json();
-    let text = (data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
-    const d = JSON.parse(text);
-    div.innerHTML = `
-      <div class="section-label mt-20">사업 초안</div>
-      <div class="ml-card accent">
-        <div class="draft-name">${d.bizName}</div>
-        <div class="draft-liner">"${d.oneLiner}"</div>
-        <div class="ml-divider"></div>
-        <div class="draft-kv"><div class="draft-k">타깃</div><div class="draft-v">${d.target}</div></div>
-        <div class="draft-kv"><div class="draft-k">가치</div><div class="draft-v">${d.value}</div></div>
-        <div class="draft-kv"><div class="draft-k">수익</div><div class="draft-v">${d.revenue}</div></div>
-        <div class="draft-kv"><div class="draft-k">투자</div><div class="draft-v">${d.investment}</div></div>
-        <div class="ml-divider"></div>
-        <div class="section-label mb-12">첫 90일 실행 계획</div>
-        ${(d.plan90||[]).map((p,i)=>`<div class="draft-plan-row"><div class="draft-month">${i+1}개월차</div><div class="draft-v">${p}</div></div>`).join('')}
-      </div>`;
-  } catch(e) {
-    div.innerHTML = `<div class="ml-card error-state mt-16"><div class="error-msg">${e.message}</div></div>`;
-  }
-}
+function saveEvalResult() {
+  const rawText = (document.getElementById('evalPasteInput')?.value||'').trim();
+  if (!rawText) { showToast('AI 평가 결과를 붙여넣어 주세요', true); return; }
 
-// ── CASES ──────────────────────────────────────────
-function renderCases(main) {
-  if (!currentAnalysis) {
-    main.innerHTML = `<div class="page-hero"><div class="hero-badge">사례탐구</div><h1 class="hero-title">유사 사례</h1></div>
-    <div class="empty-state"><div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
-    <div class="empty-title">분석된 상품이 없습니다</div><div class="empty-desc">렌즈에서 상품을 분석하면<br>유사 사례를 탐구할 수 있습니다</div>
-    <button class="empty-btn" id="toLensBtn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>렌즈로 이동</button></div>`;
-    document.getElementById('toLensBtn').addEventListener('click', () => goPage('lens'));
-    return;
-  }
-  main.innerHTML = `
-    <div class="page-hero"><div class="hero-badge">사례탐구</div><h1 class="hero-title">유사 사례</h1></div>
-    <div class="selected-bar">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-      <div class="selected-bar-inner"><div class="selected-label">분석 대상</div><div class="selected-name">${currentAnalysis.productName||currentAnalysis.inputContent}</div></div>
+  // 등급 파싱
+  const gradeMatch = rawText.match(/종합 등급[^
+]*?([SABC])/);
+  const totalMatch = rawText.match(/총점[^
+]*?(\d+)/);
+  const grade = gradeMatch ? gradeMatch[1] : 'B';
+  const total = totalMatch ? parseInt(totalMatch[1]) : 0;
+
+  const gc = {S:'#05C072',A:'#4CAF50',B:'#F59E0B',C:'#EF4444'}[grade]||'#05C072';
+
+  const div = document.getElementById('evalDisplayResult');
+  div.innerHTML = `
+    <div class="grade-hero mt-16" style="border-color:${gc}30;background:${gc}08">
+      <div class="grade-letter" style="color:${gc}">${grade}</div>
+      <div class="grade-pts" style="color:${gc}">${total}점 <span class="grade-pts-max">/ 100점</span></div>
     </div>
-    <button class="btn-full" id="loadCasesBtn">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      사례 탐색하기
-    </button>
-    <div id="casesResult"></div>
+    <div class="ml-card mt-12">
+      <div class="card-eyebrow"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>AI 평가 전문</div>
+      <div class="card-body" style="white-space:pre-wrap;font-size:13px;line-height:1.7">${rawText}</div>
+    </div>
+    <div class="btn-row mt-16">
+      <button class="btn-full" id="draftBtn">사업 초안 생성</button>
+      <button class="btn-full secondary" id="casesBtn">유사 사례 탐구</button>
+    </div>
+    <div id="draftResult"></div>
   `;
-  document.getElementById('loadCasesBtn').addEventListener('click', loadCases);
-}
 
-async function loadCases() {
-  const div = document.getElementById('casesResult');
-  div.innerHTML = `<div class="ml-card loading-inline mt-16"><div class="spinner"></div>국내외 사례 탐색 중...</div>`;
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-6', max_tokens:2000,
-        system:`비즈니스 사례 전문가. JSON만 출력: {"cases":[{"name":"","country":"국내|해외","type":"성공|실패","strategy":"","reason":"","insight":""}]}`,
-        messages:[{role:'user',content:`상품: ${currentAnalysis.productName}\n기회: ${(currentAnalysis.opportunities||[]).join(', ')}\n아이디어: ${(currentAnalysis.ideas||[]).map(i=>i.title).join(', ')}\n유사 국내외 성공/실패 사례 4~5개`}]
-      })
-    });
-    const data = await res.json();
-    let text = (data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
-    const r = JSON.parse(text);
-    div.innerHTML = `<div class="section-label mt-16">발견된 사례</div>` +
-      (r.cases||[]).map(c=>`
-        <div class="case-card ${c.type==='성공'?'success':'fail'}">
-          <div class="case-top"><div class="case-name">${c.name}</div>
-            <div class="case-pills"><span class="pill gray">${c.country}</span><span class="pill ${c.type==='성공'?'green':''}" style="${c.type!=='성공'?'background:var(--danger-bg);color:var(--danger)':''}">${c.type}</span></div>
-          </div>
-          <div class="case-row"><span class="case-key">전략</span>${c.strategy}</div>
-          <div class="case-row"><span class="case-key">이유</span>${c.reason}</div>
-          <div class="case-insight"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${c.insight}</div>
-        </div>`).join('');
-  } catch(e) {
-    div.innerHTML = `<div class="ml-card error-state mt-16"><div class="error-msg">${e.message}</div></div>`;
+  document.getElementById('draftBtn').addEventListener('click', genDraft);
+  document.getElementById('casesBtn').addEventListener('click', () => goPage('cases'));
+  showToast('평가 결과가 저장됐습니다 ✅');
+
+  if (currentUser && currentAnalysis?.id) {
+    db.collection(`users/${currentUser.uid}/evaluations`).add({
+      analysisId: currentAnalysis.id, productName: currentAnalysis.productName,
+      grade, total, rawText, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(()=>{});
+    db.collection(`users/${currentUser.uid}/analyses`).doc(currentAnalysis.id).update({evaluated:true}).catch(()=>{});
   }
 }
 
-// ── SETTINGS ───────────────────────────────────────
-function renderSettings(main) {
-  const p = userProfile||{};
-  const name = currentUser?.displayName||currentUser?.email?.split('@')[0]||'사용자';
-  const email = currentUser?.email||'';
-  const initial = name.charAt(0).toUpperCase();
-  main.innerHTML = `
-    <div class="page-hero"><div class="hero-badge">설정</div><h1 class="hero-title">내 계정</h1></div>
-    <div class="ml-card"><div class="profile-card">
-      <div class="avatar-circle">${initial}</div>
-      <div style="flex:1;min-width:0"><div class="profile-name">${name}</div><div class="profile-email" style="font-size:13px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${email}</div></div>
-      <button class="logout-btn" id="logoutBtn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>로그아웃</button>
-    </div></div>
-    <div class="section-label mt-24">내 프로필</div>
-    <div class="ml-card">
-      <div class="profile-hint">입력할수록 평가실이 나에게 맞게 조정됩니다</div>
-      <div class="form-group"><label class="form-label">보유 역량 · 전문성</label><input type="text" id="pSkills" class="ml-input-field" value="${p.skills||''}" placeholder="예) 마케팅, 교육, IT, 영업, 기획..."></div>
-      <div class="form-group mt-12"><label class="form-label">가용 초기 자본</label>
-        <select id="pCapital" class="ml-input-field"><option value="">선택해주세요</option>${['100만원 미만','100~500만원','500만~1천만원','1천만~5천만원','5천만원 이상'].map(v=>`<option value="${v}"${p.capital===v?' selected':''}>${v}</option>`).join('')}</select>
-      </div>
-      <div class="form-group mt-12"><label class="form-label">주당 가용 시간</label>
-        <select id="pTime" class="ml-input-field"><option value="">선택해주세요</option>${['5시간 미만 (부업)','5~15시간 (사이드프로젝트)','15~30시간 (병행창업)','풀타임 (전업)'].map(v=>`<option value="${v}"${p.time===v?' selected':''}>${v}</option>`).join('')}</select>
-      </div>
-      <div class="form-group mt-12"><label class="form-label">관심 산업</label><input type="text" id="pIndustry" class="ml-input-field" value="${p.industry||''}" placeholder="예) 식품, 교육, IT, 커머스, 콘텐츠..."></div>
-      <button class="btn-full mt-16" id="saveProfileBtn">프로필 저장</button>
-    </div>
-    <div class="section-label mt-24">데이터 관리</div>
-    <div class="ml-card">
-      <button class="btn-full danger-btn" id="deleteAllBtn">전체 데이터 삭제</button>
-      <div class="danger-notice">삭제된 데이터는 복구할 수 없습니다</div>
-    </div>
-  `;
-  document.getElementById('logoutBtn').addEventListener('click', async function() {
-    if (!confirm('로그아웃 하시겠습니까?')) return;
-    await auth.signOut();
-  });
-  document.getElementById('saveProfileBtn').addEventListener('click', async function() {
-    await saveProfile({ skills:document.getElementById('pSkills')?.value||'', capital:document.getElementById('pCapital')?.value||'', time:document.getElementById('pTime')?.value||'', industry:document.getElementById('pIndustry')?.value||'' });
-  });
-  document.getElementById('deleteAllBtn').addEventListener('click', async function() {
-    if (!confirm('모든 분석 데이터를 삭제합니다. 계속하시겠습니까?')) return;
-    try {
-      const s1 = await db.collection(`users/${currentUser.uid}/analyses`).get();
-      for (const d of s1.docs) await d.ref.delete();
-      const s2 = await db.collection(`users/${currentUser.uid}/evaluations`).get();
-      for (const d of s2.docs) await d.ref.delete();
-      showToast('모든 데이터가 삭제됐습니다');
-    } catch(e) { showToast('삭제 실패', true); }
-  });
-}
 
-// ── UTILS ──────────────────────────────────────────
-function fileToBase64(file) {
-  return new Promise((res,rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result.split(',')[1]);
-    r.onerror = () => rej(new Error('파일 읽기 실패'));
-    r.readAsDataURL(file);
-  });
-}
 function fmtDate(ts) {
   if (!ts) return '';
   const d = ts.toDate ? ts.toDate() : new Date(ts);
