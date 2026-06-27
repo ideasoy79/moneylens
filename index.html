@@ -8,17 +8,789 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {
-  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, onAuthStateChanged, updateProfile
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import {
-  getFirestore, collection, addDoc, getDocs, deleteDoc, doc,
-  updateDoc, query, orderBy, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 
+<!-- Firebase compat (non-module, global scope) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #F4F6FA;
+  --surface:  #FFFFFF;
+  --surface2: #F8F9FC;
+  --border:   #ECEEF4;
+  --border2:  #DDE0EB;
+
+  --text:     #0F1117;
+  --text2:    #5A607A;
+  --text3:    #9BA3BF;
+
+  --green:    #05C072;
+  --green2:   #03A861;
+  --green-bg: #EDFBF4;
+  --green-mid:rgba(5,192,114,0.18);
+
+  --indigo:   #4F6EF7;
+  --indigo-bg:#EEF1FE;
+
+  --amber:    #F59E0B;
+  --amber-bg: #FFFBEB;
+
+  --danger:   #EF4444;
+  --danger-bg:#FEF2F2;
+
+  --radius:   18px;
+  --radius-sm:12px;
+  --radius-xs:8px;
+
+  --shadow-sm: 0 1px 4px rgba(15,17,23,0.06);
+  --shadow:    0 4px 16px rgba(15,17,23,0.08);
+  --shadow-md: 0 8px 32px rgba(15,17,23,0.10);
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ── SCREENS ─────────────────────────────────── */
+.screen { display: none; height: 100vh; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ── ONBOARDING ──────────────────────────────── */
+#onboardingScreen {
+  background: var(--surface);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ob-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px 24px;
+  text-align: center;
+  width: 100%;
+}
+
+.ob-icon-wrap {
+  width: 100px; height: 100px;
+  border-radius: 28px;
+  background: var(--green-bg);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 36px;
+  box-shadow: 0 8px 32px rgba(5,192,114,0.2);
+}
+
+.ob-icon-wrap svg { width: 48px; height: 48px; stroke: var(--green); }
+
+.ob-title {
+  font-size: 28px; font-weight: 800;
+  line-height: 1.3; letter-spacing: -0.5px;
+  color: var(--text); margin-bottom: 14px;
+}
+
+.ob-desc {
+  font-size: 15px; color: var(--text2);
+  line-height: 1.75; max-width: 300px;
+}
+
+.ob-footer { width: 100%; padding: 0 24px 48px; }
+
+.ob-dots {
+  display: flex; gap: 6px;
+  justify-content: center; margin-bottom: 28px;
+}
+.ob-dot {
+  height: 6px; border-radius: 3px;
+  background: var(--border2); transition: all 0.35s cubic-bezier(.4,0,.2,1);
+  width: 6px;
+}
+.ob-dot.active { width: 22px; background: var(--green); }
+
+#obNextBtn {
+  width: 100%; padding: 16px;
+  background: var(--green); color: #fff;
+  border: none; border-radius: var(--radius-sm);
+  font-size: 16px; font-weight: 700; font-family: inherit;
+  cursor: pointer; margin-bottom: 14px;
+  transition: background 0.2s, transform 0.1s;
+  letter-spacing: -0.2px;
+}
+#obNextBtn:active { transform: scale(0.98); background: var(--green2); }
+
+#obSkip {
+  display: block; text-align: center;
+  background: none; border: none;
+  color: var(--text3); font-size: 14px;
+  font-family: inherit; cursor: pointer; padding: 6px;
+  width: 100%;
+}
+
+/* ── AUTH ────────────────────────────────────── */
+#authScreen {
+  background: var(--surface);
+  overflow-y: auto;
+}
+
+.auth-wrap {
+  padding: 52px 24px 40px;
+  width: 100%; max-width: 420px;
+  margin: 0 auto;
+}
+
+.auth-logo-wrap {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 8px;
+}
+.auth-logo-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  background: var(--green-bg);
+  display: flex; align-items: center; justify-content: center;
+}
+.auth-logo-icon svg { width: 22px; height: 22px; stroke: var(--green); }
+.auth-brand { font-size: 20px; font-weight: 800; color: var(--green); letter-spacing: -0.3px; }
+
+.auth-heading { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; margin-bottom: 6px; margin-top: 28px; }
+.auth-sub { font-size: 14px; color: var(--text2); margin-bottom: 32px; }
+
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 7px; }
+
+.ml-input {
+  width: 100%; padding: 14px 16px;
+  background: var(--surface2); border: 1.5px solid var(--border2);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-family: inherit; font-size: 15px; outline: none;
+  transition: border-color 0.2s, background 0.2s;
+  -webkit-appearance: none;
+}
+.ml-input:focus { border-color: var(--green); background: #fff; }
+.ml-input::placeholder { color: var(--text3); }
+
+.auth-error {
+  display: none; background: var(--danger-bg);
+  border: 1px solid #FECACA; border-radius: var(--radius-xs);
+  color: var(--danger); font-size: 13px; font-weight: 500;
+  padding: 10px 14px; margin-bottom: 16px; line-height: 1.5;
+}
+
+.btn-primary {
+  width: 100%; padding: 15px;
+  background: var(--green); color: #fff;
+  border: none; border-radius: var(--radius-sm);
+  font-size: 15px; font-weight: 700; font-family: inherit;
+  cursor: pointer; transition: background 0.2s, transform 0.1s;
+  letter-spacing: -0.2px; margin-bottom: 12px;
+}
+.btn-primary:active { transform: scale(0.98); background: var(--green2); }
+
+.btn-ghost {
+  width: 100%; padding: 14px;
+  background: none; border: 1.5px solid var(--border2);
+  border-radius: var(--radius-sm); color: var(--text2);
+  font-size: 14px; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: border-color 0.2s;
+}
+.btn-ghost:hover { border-color: var(--green); color: var(--green); }
+
+.auth-switch { text-align: center; margin-top: 20px; font-size: 14px; color: var(--text2); }
+.auth-switch a { color: var(--green); font-weight: 700; text-decoration: none; cursor: pointer; }
+
+.back-link {
+  display: flex; align-items: center; gap: 6px;
+  color: var(--text2); font-size: 14px; font-weight: 600;
+  background: none; border: none; font-family: inherit;
+  cursor: pointer; padding: 0; margin-bottom: 28px;
+}
+.back-link svg { width: 16px; height: 16px; stroke: var(--text2); }
+
+/* ── APP ─────────────────────────────────────── */
+#appScreen { background: var(--bg); overflow: hidden; }
+
+/* TOP NAV */
+.top-nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.nav-brand-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 0 8px;
+}
+.nav-brand-icon {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--green-bg);
+  display: flex; align-items: center; justify-content: center;
+}
+.nav-brand-icon svg { width: 16px; height: 16px; stroke: var(--green); }
+.nav-brand-name { font-size: 16px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
+.nav-brand-sub { font-size: 12px; color: var(--text3); margin-left: 2px; }
+
+.top-tabs {
+  display: flex; overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; gap: 2px;
+}
+.top-tabs::-webkit-scrollbar { display: none; }
+
+.top-tab {
+  flex-shrink: 0; padding: 10px 14px;
+  background: none; border: none;
+  border-bottom: 2.5px solid transparent;
+  color: var(--text3); font-size: 13px; font-weight: 600;
+  font-family: inherit; cursor: pointer;
+  transition: all 0.2s; white-space: nowrap;
+  display: flex; align-items: center; gap: 5px;
+}
+.top-tab svg { width: 14px; height: 14px; stroke: currentColor; }
+.top-tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+/* MAIN CONTENT */
+#mainContent {
+  flex: 1; overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px 16px 36px;
+}
+
+/* ── PAGE COMPONENTS ─────────────────────────── */
+.page-hero { margin-bottom: 22px; }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 700; color: var(--green);
+  background: var(--green-bg); border-radius: 20px;
+  padding: 4px 10px; margin-bottom: 8px; letter-spacing: 0.3px;
+}
+.hero-badge svg { width: 11px; height: 11px; stroke: var(--green); }
+.hero-title {
+  font-size: 26px; font-weight: 800;
+  color: var(--text); line-height: 1.25;
+  letter-spacing: -0.6px;
+}
+
+/* CARDS */
+.ml-card {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 18px 16px; margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
+.ml-card.accent { border-color: var(--green); border-width: 1.5px; }
+.ml-card.amber { background: var(--amber-bg); border-color: #FDE68A; }
+.ml-card.danger { background: var(--danger-bg); border-color: #FECACA; }
+
+.card-eyebrow {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; color: var(--green);
+  text-transform: uppercase; letter-spacing: 0.6px;
+  margin-bottom: 8px;
+}
+.card-eyebrow svg { width: 12px; height: 12px; stroke: var(--green); }
+.card-body { font-size: 14px; color: var(--text2); line-height: 1.7; }
+
+/* MODE TABS */
+.mode-tabs {
+  display: flex; gap: 6px; margin-bottom: 14px;
+}
+.mode-tab {
+  flex: 1; padding: 10px 8px;
+  background: var(--surface2); border: 1.5px solid var(--border2);
+  border-radius: var(--radius-xs); color: var(--text2);
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.mode-tab svg { width: 13px; height: 13px; stroke: currentColor; }
+.mode-tab.active {
+  background: var(--green-bg); border-color: var(--green);
+  color: var(--green);
+}
+
+/* INPUTS */
+.ml-textarea {
+  width: 100%; padding: 13px 14px;
+  background: var(--surface2); border: 1.5px solid var(--border2);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-family: inherit; font-size: 15px; resize: none;
+  min-height: 108px; line-height: 1.65; outline: none;
+  transition: border-color 0.2s, background 0.2s;
+  -webkit-appearance: none;
+}
+.ml-textarea:focus { border-color: var(--green); background: #fff; }
+.ml-textarea::placeholder { color: var(--text3); }
+.ml-textarea.sm { min-height: 80px; }
+
+.ml-input-field {
+  width: 100%; padding: 13px 14px;
+  background: var(--surface2); border: 1.5px solid var(--border2);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-family: inherit; font-size: 15px; outline: none;
+  transition: border-color 0.2s; -webkit-appearance: none;
+}
+.ml-input-field:focus { border-color: var(--green); background: #fff; }
+.ml-input-field::placeholder { color: var(--text3); }
+select.ml-input-field { cursor: pointer; }
+
+/* IMAGE UPLOAD */
+.img-drop {
+  border: 2px dashed var(--border2); border-radius: var(--radius-sm);
+  padding: 32px 16px; text-align: center;
+  cursor: pointer; background: var(--surface2);
+  transition: border-color 0.2s, background 0.2s;
+}
+.img-drop:hover { border-color: var(--green); background: var(--green-bg); }
+.img-drop-icon { color: var(--text3); margin-bottom: 8px; }
+.img-drop-icon svg { width: 32px; height: 32px; stroke: var(--text3); }
+.img-drop-text { font-size: 14px; font-weight: 600; color: var(--text2); }
+.img-drop-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+/* BUTTONS */
+.btn-full {
+  width: 100%; padding: 15px;
+  background: var(--green); color: #fff;
+  border: none; border-radius: var(--radius-sm);
+  font-size: 15px; font-weight: 700; font-family: inherit;
+  cursor: pointer; margin-top: 14px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background 0.2s, transform 0.1s;
+  letter-spacing: -0.2px;
+}
+.btn-full svg { width: 16px; height: 16px; stroke: currentColor; }
+.btn-full:active { transform: scale(0.98); background: var(--green2); }
+.btn-full.secondary {
+  background: var(--green-bg); color: var(--green);
+  border: 1.5px solid var(--green-mid);
+}
+.btn-full.secondary:active { background: #d4f5e7; }
+.btn-full.outline {
+  background: none; color: var(--text2);
+  border: 1.5px solid var(--border2);
+}
+.btn-full.danger-btn { background: var(--danger-bg); color: var(--danger); border: 1px solid #FECACA; }
+
+.btn-row { display: flex; gap: 8px; margin-top: 14px; }
+.btn-row .btn-full { margin-top: 0; }
+
+.btn-sm {
+  padding: 9px 14px; border-radius: var(--radius-xs);
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; gap: 5px;
+  border: none;
+}
+.btn-sm svg { width: 13px; height: 13px; stroke: currentColor; }
+.btn-sm.green { background: var(--green-bg); color: var(--green); }
+.btn-sm.red { background: var(--danger-bg); color: var(--danger); }
+
+/* SECTION LABEL */
+.section-label {
+  font-size: 11px; font-weight: 700;
+  color: var(--text3); text-transform: uppercase;
+  letter-spacing: 0.8px; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 5px;
+}
+.section-label svg { width: 11px; height: 11px; stroke: var(--text3); }
+
+/* HINTS */
+.hint-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.hint-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px;
+  display: flex; align-items: center; gap: 8px;
+  cursor: pointer; box-shadow: var(--shadow-sm);
+  transition: all 0.15s;
+}
+.hint-card:active { transform: scale(0.97); border-color: var(--green); }
+.hint-emoji { font-size: 18px; }
+.hint-text { font-size: 12px; font-weight: 600; color: var(--text2); line-height: 1.3; }
+
+/* LOADING */
+.loading-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px 18px;
+  margin-bottom: 12px; box-shadow: var(--shadow-sm);
+}
+.loading-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.spinner {
+  width: 20px; height: 20px;
+  border: 2.5px solid var(--green-bg); border-top-color: var(--green);
+  border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-title { font-size: 15px; font-weight: 700; }
+.l-steps { display: flex; flex-direction: column; gap: 7px; }
+.l-step {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--text3);
+  padding: 8px 12px; background: var(--bg);
+  border-radius: var(--radius-xs); border-left: 3px solid transparent;
+  transition: all 0.3s;
+}
+.l-step svg { width: 14px; height: 14px; stroke: var(--text3); flex-shrink: 0; }
+.l-step.done { color: var(--green2); background: var(--green-bg); border-left-color: var(--green); font-weight: 600; }
+.l-step.done svg { stroke: var(--green); }
+
+.loading-inline {
+  text-align: center; padding: 28px 16px;
+  font-size: 14px; color: var(--text2);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.loading-inline svg { width: 16px; height: 16px; stroke: var(--text2); }
+
+/* RESULT */
+.result-title-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.result-product-name { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
+.result-tag {
+  font-size: 11px; font-weight: 700;
+  background: var(--green-bg); color: var(--green);
+  border-radius: 20px; padding: 4px 10px;
+}
+
+.opp-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 9px; }
+.opp-bullet {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green); flex-shrink: 0; margin-top: 5px;
+}
+.opp-text { font-size: 14px; color: var(--text); line-height: 1.55; }
+
+.my-idea-label { font-size: 13px; color: var(--text2); margin-bottom: 10px; line-height: 1.5; }
+
+.idea-item {
+  display: flex; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px;
+  margin-bottom: 10px; box-shadow: var(--shadow-sm);
+  border-left: 3px solid var(--green-mid);
+}
+.idea-idx {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--green-bg); color: var(--green);
+  font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.idea-body { flex: 1; }
+.idea-title { font-size: 14px; font-weight: 700; margin-bottom: 5px; }
+.idea-desc { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 7px; }
+.revenue-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 600; color: var(--green2);
+  background: var(--green-bg); border-radius: 6px; padding: 3px 9px;
+}
+.revenue-tag svg { width: 11px; height: 11px; stroke: var(--green2); }
+
+.reliability-strip {
+  background: var(--amber-bg); border: 1px solid #FDE68A;
+  border-radius: var(--radius-xs); padding: 10px 14px;
+  font-size: 12px; color: #92400E; margin: 12px 0;
+  display: flex; align-items: flex-start; gap: 6px; line-height: 1.5;
+}
+.reliability-strip svg { width: 13px; height: 13px; stroke: var(--amber); flex-shrink: 0; margin-top: 1px; }
+
+/* STATS */
+.stat-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.stat-box {
+  flex: 1; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px 10px;
+  text-align: center; box-shadow: var(--shadow-sm);
+}
+.stat-num { font-size: 22px; font-weight: 800; color: var(--green); letter-spacing: -0.5px; }
+.stat-num.sm { font-size: 12px; font-weight: 700; padding-top: 5px; line-height: 1.4; }
+.stat-label { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+/* IDEA LIST */
+.idea-list-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  margin-bottom: 10px; box-shadow: var(--shadow-sm);
+  cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s;
+}
+.idea-list-card:active { border-color: var(--green); }
+.ilc-main { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.ilc-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.ilc-preview { font-size: 13px; color: var(--text3); line-height: 1.4; }
+.ilc-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+.pill {
+  font-size: 11px; font-weight: 700; border-radius: 20px; padding: 3px 9px;
+}
+.pill.green { background: var(--green-bg); color: var(--green); }
+.pill.gray { background: var(--bg); color: var(--text3); border: 1px solid var(--border2); }
+.date-text { font-size: 11px; color: var(--text3); }
+.chevron-icon { color: var(--text3); }
+.chevron-icon svg { width: 16px; height: 16px; stroke: var(--text3); }
+
+.detail-panel { display: none; }
+.detail-divider { height: 1px; background: var(--border); margin: 14px 0; }
+.detail-row { margin-bottom: 10px; }
+.detail-key { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; margin-bottom: 3px; }
+.detail-val { font-size: 13px; color: var(--text2); line-height: 1.55; }
+.detail-val.hl { color: var(--text); font-weight: 600; }
+.detail-actions { display: flex; gap: 8px; margin-top: 14px; }
+
+/* EVAL */
+.selected-bar {
+  background: var(--green-bg); border: 1.5px solid var(--green-mid);
+  border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.selected-bar svg { width: 16px; height: 16px; stroke: var(--green); flex-shrink: 0; }
+.selected-bar-inner { flex: 1; }
+.selected-label { font-size: 11px; font-weight: 700; color: var(--green); text-transform: uppercase; }
+.selected-name { font-size: 14px; font-weight: 700; color: var(--text); margin-top: 2px; }
+
+.notice-card {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: var(--amber-bg); border: 1px solid #FDE68A;
+  border-radius: var(--radius-sm); padding: 14px; margin-bottom: 12px;
+}
+.notice-icon svg { width: 18px; height: 18px; stroke: var(--amber); }
+.notice-title { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+.notice-desc { font-size: 12px; color: var(--text2); line-height: 1.5; }
+.notice-link {
+  background: none; border: none; color: var(--amber); font-size: 12px;
+  font-weight: 700; font-family: inherit; cursor: pointer;
+  padding: 0; margin-top: 6px; display: block;
+  text-decoration: underline;
+}
+
+.eval-meta-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 12px;
+  text-align: center;
+}
+.eval-meta-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.eval-meta-tags { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.eval-meta-tag {
+  font-size: 12px; font-weight: 600; color: var(--indigo);
+  background: var(--indigo-bg); border-radius: 20px; padding: 4px 10px;
+}
+
+/* GRADE */
+.grade-hero {
+  border-radius: var(--radius); padding: 28px 20px;
+  text-align: center; margin-bottom: 14px;
+  border: 1.5px solid; position: relative; overflow: hidden;
+}
+.grade-letter { font-size: 72px; font-weight: 800; line-height: 1; letter-spacing: -2px; }
+.grade-pts { font-size: 22px; font-weight: 700; margin-top: 4px; }
+.grade-pts-max { font-size: 13px; color: var(--text3); }
+.grade-summary { font-size: 14px; color: var(--text2); line-height: 1.65; margin-top: 12px; }
+
+/* SCORE */
+.score-card { padding: 14px 16px; }
+.score-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.score-label-text { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.score-label-text svg { width: 14px; height: 14px; stroke: var(--text2); }
+.score-pts { font-size: 18px; font-weight: 800; }
+.score-pts-max { font-size: 12px; font-weight: 500; color: var(--text3); }
+.score-bar-bg { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.score-bar-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+.score-reason-text { font-size: 13px; color: var(--text2); line-height: 1.5; }
+
+/* INSIGHT */
+.insight-item {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 12px 0; font-size: 14px; line-height: 1.55;
+}
+.insight-icon svg { width: 16px; height: 16px; flex-shrink: 0; }
+.insight-divider { height: 1px; background: var(--border); }
+
+/* DRAFT */
+.draft-name { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 3px; }
+.draft-liner { font-size: 14px; color: var(--green); font-weight: 600; font-style: italic; margin-bottom: 16px; }
+.draft-kv { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
+.draft-k { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; min-width: 36px; flex-shrink: 0; margin-top: 2px; }
+.draft-v { font-size: 14px; color: var(--text2); line-height: 1.5; }
+.draft-plan-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
+.draft-month { font-size: 11px; font-weight: 700; color: var(--green); min-width: 52px; flex-shrink: 0; margin-top: 2px; }
+
+/* CASES */
+.case-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+  box-shadow: var(--shadow-sm); border-left: 4px solid transparent;
+}
+.case-card.success { border-left-color: var(--green); }
+.case-card.fail { border-left-color: var(--danger); }
+.case-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
+.case-name { font-size: 15px; font-weight: 700; }
+.case-pills { display: flex; gap: 4px; flex-shrink: 0; }
+.case-row { font-size: 13px; color: var(--text2); margin-bottom: 7px; line-height: 1.5; display: flex; gap: 6px; }
+.case-key { font-weight: 700; color: var(--text); flex-shrink: 0; }
+.case-insight {
+  font-size: 13px; font-weight: 600; color: var(--green2);
+  background: var(--green-bg); border-radius: var(--radius-xs);
+  padding: 9px 12px; margin-top: 10px; line-height: 1.5;
+  display: flex; gap: 6px; align-items: flex-start;
+}
+.case-insight svg { width: 13px; height: 13px; stroke: var(--green); flex-shrink: 0; margin-top: 1px; }
+
+/* SETTINGS */
+.profile-card { display: flex; align-items: center; gap: 14px; }
+.avatar-circle {
+  width: 50px; height: 50px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--green), var(--indigo));
+  color: #fff; font-size: 20px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.profile-name { font-size: 16px; font-weight: 700; }
+.profile-email { font-size: 13px; color: var(--text3); }
+.logout-btn {
+  margin-left: auto; background: var(--bg); border: 1.5px solid var(--border2);
+  border-radius: var(--radius-xs); padding: 8px 14px;
+  font-size: 13px; font-weight: 600; font-family: inherit; color: var(--text2);
+  cursor: pointer; flex-shrink: 0; display: flex; align-items: center; gap: 5px;
+}
+.logout-btn svg { width: 13px; height: 13px; stroke: var(--text2); }
+.profile-hint { font-size: 13px; color: var(--text3); line-height: 1.55; margin-bottom: 16px; }
+.danger-notice { font-size: 12px; color: var(--text3); text-align: center; margin-top: 8px; }
+
+/* EMPTY */
+.empty-state { text-align: center; padding: 56px 24px; }
+.empty-icon {
+  width: 72px; height: 72px; border-radius: 20px;
+  background: var(--surface2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 18px;
+}
+.empty-icon svg { width: 32px; height: 32px; stroke: var(--text3); }
+.empty-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.empty-desc { font-size: 14px; color: var(--text3); line-height: 1.65; }
+.empty-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--green); color: #fff;
+  border: none; border-radius: var(--radius-sm);
+  padding: 12px 24px; font-size: 14px; font-weight: 700;
+  font-family: inherit; cursor: pointer; margin-top: 20px;
+}
+.empty-btn svg { width: 14px; height: 14px; stroke: #fff; }
+
+/* ERROR */
+.error-state { text-align: center; padding: 20px 16px; }
+.error-state svg { width: 28px; height: 28px; stroke: var(--danger); margin-bottom: 8px; }
+.error-msg { font-size: 14px; font-weight: 600; color: var(--danger); }
+.error-detail { font-size: 12px; color: var(--text3); margin-top: 4px; line-height: 1.5; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: var(--text); color: #fff;
+  padding: 11px 20px; border-radius: 24px;
+  font-size: 14px; font-weight: 600;
+  z-index: 9999; opacity: 0;
+  transition: all 0.25s cubic-bezier(.4,0,.2,1);
+  white-space: nowrap; max-width: 90vw;
+  display: flex; align-items: center; gap: 7px;
+  box-shadow: var(--shadow-md); pointer-events: none;
+}
+.toast svg { width: 15px; height: 15px; stroke: currentColor; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.err { background: var(--danger); }
+
+/* DIVIDER */
+.ml-divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+/* UTILS */
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mt-20 { margin-top: 20px; }
+.mt-24 { margin-top: 24px; }
+.mb-12 { margin-bottom: 12px; }
+
+/* RESPONSIVE */
+@media (min-width: 480px) {
+  body { background: #E8EAF0; }
+  .screen { max-width: 480px; margin: 0 auto; box-shadow: var(--shadow-md); }
+  #onboardingScreen, #authScreen { border-radius: 0; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .ob-icon-wrap { width: 72px; height: 72px; margin-bottom: 20px; }
+  .ob-icon-wrap svg { width: 36px; height: 36px; }
+  .ob-title { font-size: 22px; margin-bottom: 8px; }
+  .ob-desc { margin-bottom: 16px; }
+  .page-hero { margin-bottom: 14px; }
+  .hero-title { font-size: 22px; }
+  .ml-card { padding: 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ONBOARDING -->
+<div id="onboardingScreen" class="screen active">
+  <div class="ob-body">
+    <div class="ob-icon-wrap" id="obIconWrap"></div>
+    <h1 class="ob-title" id="obTitle"></h1>
+    <p class="ob-desc" id="obDesc"></p>
+  </div>
+  <div class="ob-footer">
+    <div class="ob-dots" id="obDots"></div>
+    <button id="obNextBtn">다음</button>
+    <button id="obSkip">건너뛰기</button>
+  </div>
+</div>
+
+<!-- AUTH LOGIN -->
+<div id="authScreen" class="screen">
+  <div class="auth-wrap" id="authWrap"></div>
+</div>
+
+<!-- APP -->
+<div id="appScreen" class="screen">
+  <header class="top-nav">
+    <div class="nav-brand-row">
+      <div class="nav-brand-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </div>
+      <span class="nav-brand-name">MoneyLens</span>
+      <span class="nav-brand-sub">돈 벌 생각</span>
+    </div>
+    <nav class="top-tabs" id="topTabs">
+      <button class="top-tab active" data-page="lens" id="tab-lens">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        렌즈
+      </button>
+      <button class="top-tab" data-page="ideas" id="tab-ideas">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        아이디어함
+      </button>
+      <button class="top-tab" data-page="eval" id="tab-eval">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        평가실
+      </button>
+      <button class="top-tab" data-page="cases" id="tab-cases">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        사례
+      </button>
+      <button class="top-tab" data-page="settings" id="tab-settings">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        설정
+      </button>
+    </nav>
+  </header>
+  <div id="mainContent"></div>
+</div>
+
+<script>
+// ── FIREBASE INIT ──────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyBujxf8knm_dolV2cDD_nuxMI9hucXD5ys",
   authDomain: "moneylens-e8557.firebaseapp.com",
@@ -27,1791 +799,787 @@ const firebaseConfig = {
   messagingSenderId: "1085597108252",
   appId: "1:1085597108252:web:a340c8ebc84e153b4037d9"
 };
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
+// ── STATE ──────────────────────────────────────────
 let currentUser = null;
 let userProfile = null;
 let currentAnalysis = null;
 let currentPage = 'lens';
 let radarChart = null;
-let onboardingStep = 0;
+let obStep = 0;
 
-// ─── AUTH STATE ────────────────────────────────────────
-onAuthStateChanged(auth, async (user) => {
-  currentUser = user;
-  if (user) {
-    showScreen('app');
-    await loadUserProfile();
-    renderPage('lens');
-  } else {
-    showScreen('onboarding');
-  }
-});
-
-function showScreen(name) {
-  document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
-  document.getElementById(name + 'Screen').style.display = name === 'app' ? 'flex' : 'block';
-}
-
-// ─── ONBOARDING ────────────────────────────────────────
-const slides = [
-  {
-    emoji: '🔍',
-    title: '상품을 보는 눈이\n달라집니다',
-    desc: '편의점 삼각김밥, 스타벅스 커피, 배달앱…\n일상의 모든 것이 사업 아이디어가 됩니다'
-  },
-  {
-    emoji: '🏭',
-    title: '원가부터 유통까지\nAI가 해부합니다',
-    desc: '생산 구조, 유통 마진, 시장 규모를\n한눈에 파악하세요'
-  },
-  {
-    emoji: '💰',
-    title: '기회를 발견하고\n사업으로 만드세요',
-    desc: '실현가능성 평가부터 사업 초안까지\n돈 버는 생각을 실행으로'
-  }
+// ── ONBOARDING ────────────────────────────────────
+const obSlides = [
+  { icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:48px;height:48px;stroke:var(--green)"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`, title: '상품을 보는 눈이\n달라집니다', desc: '편의점 삼각김밥, 스타벅스 커피, 배달앱…\n일상의 모든 것이 사업 아이디어가 됩니다' },
+  { icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:48px;height:48px;stroke:var(--green)"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`, title: '원가부터 유통까지\nAI가 해부합니다', desc: '생산 구조, 유통 마진, 시장 규모를\n한눈에 파악하세요' },
+  { icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:48px;height:48px;stroke:var(--green)"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`, title: '기회를 발견하고\n사업으로 만드세요', desc: '실현가능성 평가부터 사업 초안까지\n돈 버는 생각을 실행으로' }
 ];
 
-window.nextOnboarding = function() {
-  if (onboardingStep < slides.length - 1) {
-    onboardingStep++;
-    renderOnboardingSlide();
-  } else {
-    showAuthPanel('login');
-  }
-};
-
-window.skipOnboarding = function() {
-  showAuthPanel('login');
-};
-
-function renderOnboardingSlide() {
-  const s = slides[onboardingStep];
-  document.getElementById('obEmoji').textContent = s.emoji;
-  document.getElementById('obTitle').innerHTML = s.title.replace('\n', '<br>');
-  document.getElementById('obDesc').innerHTML = s.desc.replace('\n', '<br>');
-  document.querySelectorAll('.ob-dot').forEach((d, i) => {
-    d.classList.toggle('active', i === onboardingStep);
-  });
-  const btn = document.getElementById('obNextBtn');
-  btn.textContent = onboardingStep < slides.length - 1 ? '다음' : '시작하기';
-  const skip = document.getElementById('obSkip');
-  skip.style.visibility = onboardingStep < slides.length - 1 ? 'visible' : 'hidden';
+function renderObSlide() {
+  const s = obSlides[obStep];
+  document.getElementById('obIconWrap').innerHTML = s.icon;
+  document.getElementById('obTitle').innerHTML = s.title.replace('\n','<br>');
+  document.getElementById('obDesc').innerHTML = s.desc.replace('\n','<br>');
+  const dots = document.getElementById('obDots');
+  dots.innerHTML = obSlides.map((_,i) => `<div class="ob-dot${i===obStep?' active':''}"></div>`).join('');
+  document.getElementById('obNextBtn').textContent = obStep < obSlides.length-1 ? '다음' : '시작하기';
+  document.getElementById('obSkip').style.visibility = obStep < obSlides.length-1 ? 'visible' : 'hidden';
 }
 
-function showAuthPanel(mode) {
-  document.getElementById('onboardingSlide').style.display = 'none';
-  document.getElementById('authPanel').style.display = 'block';
+document.getElementById('obNextBtn').addEventListener('click', function() {
+  if (obStep < obSlides.length-1) { obStep++; renderObSlide(); }
+  else showAuth('login');
+});
+document.getElementById('obSkip').addEventListener('click', function() { showAuth('login'); });
+
+renderObSlide();
+
+// ── AUTH SCREENS ──────────────────────────────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(name + 'Screen').classList.add('active');
+}
+
+function showAuth(mode) {
+  showScreen('auth');
   if (mode === 'login') renderLogin();
   else renderSignup();
 }
 
 function renderLogin() {
-  document.getElementById('authPanel').innerHTML = `
-    <div class="auth-top">
-      <div class="auth-logo">🔍</div>
-      <div class="auth-brand">MoneyLens</div>
-      <div class="auth-sub">돈 벌 생각</div>
+  document.getElementById('authWrap').innerHTML = `
+    <div class="auth-logo-wrap">
+      <div class="auth-logo-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </div>
+      <span class="auth-brand">MoneyLens</span>
     </div>
-    <div class="auth-form">
-      <div class="form-group">
-        <label class="form-label">이메일</label>
-        <input type="email" id="authEmail" class="toss-input" placeholder="이메일을 입력하세요" autocomplete="email">
-      </div>
-      <div class="form-group">
-        <label class="form-label">비밀번호</label>
-        <input type="password" id="authPw" class="toss-input" placeholder="비밀번호를 입력하세요" autocomplete="current-password">
-      </div>
-      <div id="authError" class="auth-error" style="display:none"></div>
-      <button class="toss-btn primary" onclick="doLogin()">로그인</button>
-      <button class="toss-btn ghost" onclick="showAuthPanel('signup')">처음 오셨나요? 회원가입</button>
+    <h1 class="auth-heading">로그인</h1>
+    <p class="auth-sub">돈 버는 생각을 시작하세요</p>
+    <div class="form-group">
+      <label class="form-label">이메일</label>
+      <input type="email" id="loginEmail" class="ml-input" placeholder="이메일을 입력하세요" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label class="form-label">비밀번호</label>
+      <input type="password" id="loginPw" class="ml-input" placeholder="비밀번호를 입력하세요" autocomplete="current-password">
+    </div>
+    <div id="loginError" class="auth-error"></div>
+    <button class="btn-primary" id="loginBtn">로그인</button>
+    <button class="btn-ghost" id="goSignupBtn">처음 오셨나요? 회원가입</button>
+    <div class="auth-switch mt-16">
+      <span id="toSignup" style="cursor:pointer;color:var(--green);font-weight:700;">회원가입 →</span>
     </div>
   `;
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+  document.getElementById('loginEmail').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('loginPw').focus(); });
+  document.getElementById('loginPw').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+  document.getElementById('goSignupBtn').addEventListener('click', function() { renderSignup(); });
+  document.getElementById('toSignup').addEventListener('click', function() { renderSignup(); });
 }
 
 function renderSignup() {
-  document.getElementById('authPanel').innerHTML = `
-    <div class="auth-top">
-      <button class="back-btn" onclick="showAuthPanel('login')">← 로그인으로</button>
-      <div class="auth-logo" style="margin-top:8px">🔍</div>
-      <div class="auth-brand">MoneyLens</div>
-      <div class="auth-sub">계정을 만들어 시작하세요</div>
+  document.getElementById('authWrap').innerHTML = `
+    <button class="back-link" id="backToLogin">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      로그인으로 돌아가기
+    </button>
+    <div class="auth-logo-wrap">
+      <div class="auth-logo-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </div>
+      <span class="auth-brand">MoneyLens</span>
     </div>
-    <div class="auth-form">
-      <div class="form-group">
-        <label class="form-label">이름</label>
-        <input type="text" id="authName" class="toss-input" placeholder="이름을 입력하세요">
-      </div>
-      <div class="form-group">
-        <label class="form-label">이메일</label>
-        <input type="email" id="authEmail" class="toss-input" placeholder="이메일을 입력하세요" autocomplete="email">
-      </div>
-      <div class="form-group">
-        <label class="form-label">비밀번호</label>
-        <input type="password" id="authPw" class="toss-input" placeholder="6자 이상 입력하세요" autocomplete="new-password">
-      </div>
-      <div id="authError" class="auth-error" style="display:none"></div>
-      <button class="toss-btn primary" onclick="doSignup()">회원가입</button>
+    <h1 class="auth-heading">회원가입</h1>
+    <p class="auth-sub">계정을 만들어 시작하세요</p>
+    <div class="form-group">
+      <label class="form-label">이름</label>
+      <input type="text" id="signupName" class="ml-input" placeholder="이름을 입력하세요">
     </div>
+    <div class="form-group">
+      <label class="form-label">이메일</label>
+      <input type="email" id="signupEmail" class="ml-input" placeholder="이메일을 입력하세요" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label class="form-label">비밀번호</label>
+      <input type="password" id="signupPw" class="ml-input" placeholder="6자 이상 입력하세요" autocomplete="new-password">
+    </div>
+    <div id="signupError" class="auth-error"></div>
+    <button class="btn-primary" id="signupBtn">회원가입</button>
   `;
+  document.getElementById('backToLogin').addEventListener('click', function() { renderLogin(); });
+  document.getElementById('signupBtn').addEventListener('click', doSignup);
+  document.getElementById('signupPw').addEventListener('keydown', e => { if(e.key==='Enter') doSignup(); });
 }
 
-window.doLogin = async function() {
-  const email = document.getElementById('authEmail')?.value?.trim();
-  const pw = document.getElementById('authPw')?.value;
-  const errEl = document.getElementById('authError');
-  if (!email || !pw) { showAuthError('이메일과 비밀번호를 입력해주세요'); return; }
-  try {
-    await signInWithEmailAndPassword(auth, email, pw);
-  } catch(e) {
-    const msg = e.code === 'auth/invalid-credential' ? '이메일 또는 비밀번호가 올바르지 않습니다'
-      : e.code === 'auth/user-not-found' ? '등록되지 않은 이메일입니다'
-      : e.code === 'auth/wrong-password' ? '비밀번호가 올바르지 않습니다'
-      : '로그인 실패: ' + e.message;
-    showAuthError(msg);
-  }
-};
-
-window.doSignup = async function() {
-  const name = document.getElementById('authName')?.value?.trim();
-  const email = document.getElementById('authEmail')?.value?.trim();
-  const pw = document.getElementById('authPw')?.value;
-  if (!name || !email || !pw) { showAuthError('모든 항목을 입력해주세요'); return; }
-  if (pw.length < 6) { showAuthError('비밀번호는 6자 이상이어야 합니다'); return; }
-  try {
-    const cred = await createUserWithEmailAndPassword(auth, email, pw);
-    await updateProfile(cred.user, { displayName: name });
-  } catch(e) {
-    const msg = e.code === 'auth/email-already-in-use' ? '이미 사용 중인 이메일입니다'
-      : e.code === 'auth/invalid-email' ? '이메일 형식이 올바르지 않습니다'
-      : '회원가입 실패: ' + e.message;
-    showAuthError(msg);
-  }
-};
-
-function showAuthError(msg) {
-  const el = document.getElementById('authError');
+function showAuthError(elId, msg) {
+  const el = document.getElementById(elId);
   if (el) { el.textContent = msg; el.style.display = 'block'; }
 }
 
-window.logout = async function() {
-  if (!confirm('로그아웃 하시겠습니까?')) return;
-  await signOut(auth);
-};
+function doLogin() {
+  const email = (document.getElementById('loginEmail')?.value || '').trim();
+  const pw = document.getElementById('loginPw')?.value || '';
+  if (!email || !pw) { showAuthError('loginError','이메일과 비밀번호를 입력해주세요'); return; }
+  auth.signInWithEmailAndPassword(email, pw).catch(e => {
+    const msg = e.code==='auth/invalid-credential'||e.code==='auth/wrong-password'||e.code==='auth/user-not-found'
+      ? '이메일 또는 비밀번호가 올바르지 않습니다' : '로그인 실패: '+e.message;
+    showAuthError('loginError', msg);
+  });
+}
 
-// ─── PROFILE ──────────────────────────────────────────
+function doSignup() {
+  const name = (document.getElementById('signupName')?.value || '').trim();
+  const email = (document.getElementById('signupEmail')?.value || '').trim();
+  const pw = document.getElementById('signupPw')?.value || '';
+  if (!name||!email||!pw) { showAuthError('signupError','모든 항목을 입력해주세요'); return; }
+  if (pw.length < 6) { showAuthError('signupError','비밀번호는 6자 이상이어야 합니다'); return; }
+  auth.createUserWithEmailAndPassword(email, pw)
+    .then(cred => cred.user.updateProfile({ displayName: name }))
+    .catch(e => {
+      const msg = e.code==='auth/email-already-in-use' ? '이미 사용 중인 이메일입니다'
+        : e.code==='auth/invalid-email' ? '이메일 형식이 올바르지 않습니다' : '회원가입 실패: '+e.message;
+      showAuthError('signupError', msg);
+    });
+}
+
+// ── AUTH STATE ─────────────────────────────────────
+auth.onAuthStateChanged(async user => {
+  currentUser = user;
+  if (user) {
+    showScreen('app');
+    await loadUserProfile();
+    goPage('lens');
+  } else {
+    showScreen('onboarding');
+  }
+});
+
+document.getElementById('topTabs').addEventListener('click', function(e) {
+  const btn = e.target.closest('.top-tab');
+  if (btn) goPage(btn.dataset.page);
+});
+
+function goPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.top-tab').forEach(b => b.classList.toggle('active', b.dataset.page===page));
+  const main = document.getElementById('mainContent');
+  main.scrollTop = 0;
+  if (page==='lens') renderLens(main);
+  else if (page==='ideas') renderIdeas(main);
+  else if (page==='eval') renderEval(main);
+  else if (page==='cases') renderCases(main);
+  else if (page==='settings') renderSettings(main);
+}
+
+// ── PROFILE ────────────────────────────────────────
 async function loadUserProfile() {
   try {
-    const snap = await getDocs(collection(db, `users/${currentUser.uid}/profile`));
+    const snap = await db.collection(`users/${currentUser.uid}/profile`).get();
     userProfile = snap.empty ? null : snap.docs[0].data();
   } catch(e) { userProfile = null; }
 }
 
 async function saveProfile(data) {
   try {
-    const snap = await getDocs(collection(db, `users/${currentUser.uid}/profile`));
-    if (!snap.empty) {
-      await updateDoc(doc(db, `users/${currentUser.uid}/profile`, snap.docs[0].id), data);
-    } else {
-      await addDoc(collection(db, `users/${currentUser.uid}/profile`), data);
-    }
+    const snap = await db.collection(`users/${currentUser.uid}/profile`).get();
+    if (!snap.empty) await snap.docs[0].ref.update(data);
+    else await db.collection(`users/${currentUser.uid}/profile`).add(data);
     userProfile = data;
-    showToast('프로필이 저장되었습니다');
-  } catch(e) { showToast('저장 실패: ' + e.message, 'error'); }
+    showToast('프로필이 저장됐습니다');
+  } catch(e) { showToast('저장 실패: '+e.message, true); }
 }
 
-// ─── NAVIGATION ───────────────────────────────────────
-window.renderPage = function(page) {
-  currentPage = page;
-  document.querySelectorAll('.top-tab').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.top-tab[data-tab="${page}"]`)?.classList.add('active');
-  renderPageContent(page);
-};
-
-function renderPageContent(page) {
-  const main = document.getElementById('mainContent');
-  main.scrollTop = 0;
-  if (page === 'lens') renderLens(main);
-  else if (page === 'ideas') renderIdeas(main);
-  else if (page === 'eval') renderEval(main);
-  else if (page === 'cases') renderCases(main);
-  else if (page === 'settings') renderSettings(main);
-}
-
-// ─── TOP NAV ──────────────────────────────────────────
-function buildTopNav() {
-  return `
-  <header class="top-nav">
-    <div class="top-nav-brand">
-      <span class="brand-icon">🔍</span>
-      <span class="brand-name">MoneyLens</span>
-    </div>
-    <nav class="top-tabs">
-      <button class="top-tab active" data-tab="lens" onclick="renderPage('lens')">렌즈</button>
-      <button class="top-tab" data-tab="ideas" onclick="renderPage('ideas')">아이디어함</button>
-      <button class="top-tab" data-tab="eval" onclick="renderPage('eval')">평가실</button>
-      <button class="top-tab" data-tab="cases" onclick="renderPage('cases')">사례</button>
-      <button class="top-tab" data-tab="settings" onclick="renderPage('settings')">설정</button>
-    </nav>
-  </header>`;
-}
-
-// ─── LENS PAGE ────────────────────────────────────────
+// ── LENS ───────────────────────────────────────────
 function renderLens(main) {
   main.innerHTML = `
     <div class="page-hero">
-      <div class="hero-eyebrow">돈 벌 생각</div>
+      <div class="hero-badge">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        돈 벌 생각
+      </div>
       <h1 class="hero-title">상품을 보는 눈이<br>달라지면 돈이 보입니다</h1>
     </div>
 
-    <div class="toss-card">
-      <div class="input-mode-tabs">
-        <button class="mode-tab active" onclick="switchMode('text',this)">텍스트</button>
-        <button class="mode-tab" onclick="switchMode('image',this)">이미지</button>
-        <button class="mode-tab" onclick="switchMode('url',this)">URL</button>
+    <div class="ml-card">
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="text">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+          텍스트
+        </button>
+        <button class="mode-tab" data-mode="image">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          이미지
+        </button>
+        <button class="mode-tab" data-mode="url">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          URL
+        </button>
       </div>
-
-      <div id="modeText" class="mode-panel">
-        <textarea id="textInput" class="toss-textarea" placeholder="분석할 상품이나 서비스를 입력하세요&#10;예) 편의점 삼각김밥, 스타벅스 아메리카노, 쿠팡 로켓배송..."></textarea>
-      </div>
-      <div id="modeImage" class="mode-panel" style="display:none">
-        <div class="image-upload-area" onclick="document.getElementById('imgFile').click()">
-          <div id="imgPreviewWrap">
-            <div class="upload-icon">📷</div>
-            <div class="upload-text">사진을 탭해서 업로드</div>
-            <div class="upload-sub">상품 사진, 영수증, 패키지 등</div>
+      <div id="modeText"><textarea id="textInput" class="ml-textarea" placeholder="분석할 상품이나 서비스를 입력하세요&#10;예) 편의점 삼각김밥, 스타벅스 아메리카노, 쿠팡 로켓배송..."></textarea></div>
+      <div id="modeImage" style="display:none">
+        <div class="img-drop" id="imgDropZone">
+          <div id="imgPreviewInner">
+            <div class="img-drop-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+            <div class="img-drop-text">사진을 탭해서 업로드</div>
+            <div class="img-drop-sub">상품 사진, 영수증, 패키지 등</div>
           </div>
         </div>
-        <input type="file" id="imgFile" accept="image/*" style="display:none" onchange="previewImg(this)">
+        <input type="file" id="imgFile" accept="image/*" style="display:none">
       </div>
-      <div id="modeUrl" class="mode-panel" style="display:none">
-        <input type="url" id="urlInput" class="toss-input" placeholder="쿠팡, 네이버쇼핑, 배민 등 URL 붙여넣기" style="margin:0">
+      <div id="modeUrl" style="display:none">
+        <input type="url" id="urlInput" class="ml-input-field" placeholder="쿠팡, 네이버쇼핑, 배민 등 URL 붙여넣기">
       </div>
-
-      <button class="toss-btn primary full-width mt-16" onclick="startAnalysis()">
+      <button class="btn-full" id="analyzeBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         분석 시작하기
       </button>
     </div>
 
-    <div class="section-label">이렇게 활용해보세요</div>
-    <div class="hint-grid">
-      <div class="hint-card" onclick="fillExample('편의점 삼각김밥')">
-        <div class="hint-emoji">🍙</div>
-        <div class="hint-text">편의점 삼각김밥</div>
-      </div>
-      <div class="hint-card" onclick="fillExample('스타벅스 아메리카노')">
-        <div class="hint-emoji">☕</div>
-        <div class="hint-text">스타벅스 아메리카노</div>
-      </div>
-      <div class="hint-card" onclick="fillExample('배달앱 서비스')">
-        <div class="hint-emoji">📱</div>
-        <div class="hint-text">배달앱 서비스</div>
-      </div>
-      <div class="hint-card" onclick="fillExample('요가매트')">
-        <div class="hint-emoji">🧘</div>
-        <div class="hint-text">요가매트</div>
-      </div>
+    <div class="section-label">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      이렇게 활용해보세요
     </div>
-
+    <div class="hint-grid">
+      <div class="hint-card" data-hint="편의점 삼각김밥"><span class="hint-emoji">🍙</span><span class="hint-text">편의점 삼각김밥</span></div>
+      <div class="hint-card" data-hint="스타벅스 아메리카노"><span class="hint-emoji">☕</span><span class="hint-text">스타벅스 아메리카노</span></div>
+      <div class="hint-card" data-hint="배달앱 서비스"><span class="hint-emoji">📱</span><span class="hint-text">배달앱 서비스</span></div>
+      <div class="hint-card" data-hint="요가매트"><span class="hint-emoji">🧘</span><span class="hint-text">요가매트</span></div>
+    </div>
     <div id="analysisResult"></div>
   `;
-}
 
-window.fillExample = function(text) {
-  const el = document.getElementById('textInput');
-  if (el) { el.value = text; el.focus(); }
-  // Ensure text mode is active
-  document.querySelectorAll('.mode-tab').forEach((b,i) => b.classList.toggle('active', i===0));
-  document.querySelectorAll('.mode-panel').forEach((p,i) => p.style.display = i===0 ? 'block' : 'none');
-};
-
-window.switchMode = function(type, btn) {
-  document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  document.querySelectorAll('.mode-panel').forEach(p => p.style.display = 'none');
-  document.getElementById('mode' + type.charAt(0).toUpperCase() + type.slice(1)).style.display = 'block';
-};
-
-window.previewImg = function(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('imgPreviewWrap').innerHTML =
-      `<img src="${e.target.result}" style="max-width:100%;max-height:180px;border-radius:8px;object-fit:contain">`;
-  };
-  reader.readAsDataURL(file);
-};
-
-window.startAnalysis = async function() {
-  const activeMode = document.querySelector('.mode-tab.active')?.textContent;
-  let inputContent = '', inputType = 'text', imageBase64 = null;
-
-  if (activeMode === '텍스트') {
-    inputContent = document.getElementById('textInput')?.value?.trim();
-    inputType = 'text';
-  } else if (activeMode === '이미지') {
-    const file = document.getElementById('imgFile')?.files[0];
-    if (!file) { showToast('이미지를 선택해주세요', 'error'); return; }
-    inputContent = file.name;
-    inputType = 'image';
-    imageBase64 = await fileToBase64(file);
-  } else {
-    inputContent = document.getElementById('urlInput')?.value?.trim();
-    inputType = 'url';
-  }
-  if (!inputContent) { showToast('분석할 내용을 입력해주세요', 'error'); return; }
-
-  const resultDiv = document.getElementById('analysisResult');
-  resultDiv.innerHTML = `
-    <div class="toss-card mt-16">
-      <div class="loading-header">
-        <div class="loading-spinner"></div>
-        <div class="loading-title">AI가 분석하고 있습니다</div>
-      </div>
-      <div class="loading-steps">
-        ${['상품 개요 파악','생산 구조 분석','유통 경로 추적','시장 규모 추정','기회 포인트 탐색','아이디어 생성'].map((s,i) =>
-          `<div class="l-step" id="ls${i}">${s}</div>`
-        ).join('')}
-      </div>
-    </div>`;
-
-  [0,1,2,3,4,5].forEach(i => {
-    setTimeout(() => {
-      const el = document.getElementById(`ls${i}`);
-      if (el) el.classList.add('done');
-    }, (i + 1) * 700);
+  // Mode tabs
+  main.querySelectorAll('.mode-tab').forEach(btn => {
+    btn.addEventListener('click', function() {
+      main.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      ['modeText','modeImage','modeUrl'].forEach(id => document.getElementById(id).style.display='none');
+      document.getElementById('mode'+this.dataset.mode.charAt(0).toUpperCase()+this.dataset.mode.slice(1)).style.display='block';
+    });
   });
 
+  // Hint cards
+  main.querySelectorAll('.hint-card').forEach(card => {
+    card.addEventListener('click', function() {
+      // switch to text mode
+      main.querySelectorAll('.mode-tab').forEach(b => b.classList.toggle('active', b.dataset.mode==='text'));
+      ['modeText','modeImage','modeUrl'].forEach(id => document.getElementById(id).style.display='none');
+      document.getElementById('modeText').style.display='block';
+      document.getElementById('textInput').value = this.dataset.hint;
+    });
+  });
+
+  // Image upload
+  document.getElementById('imgDropZone').addEventListener('click', () => document.getElementById('imgFile').click());
+  document.getElementById('imgFile').addEventListener('change', function() {
+    const file = this.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = e => { document.getElementById('imgPreviewInner').innerHTML = `<img src="${e.target.result}" style="max-width:100%;max-height:180px;border-radius:8px;object-fit:contain">`; };
+    reader.readAsDataURL(file);
+  });
+
+  // Analyze
+  document.getElementById('analyzeBtn').addEventListener('click', startAnalysis);
+}
+
+async function startAnalysis() {
+  const activeMode = document.querySelector('.mode-tab.active')?.dataset.mode;
+  let inputContent='', inputType='text', imageBase64=null;
+
+  if (activeMode==='text') {
+    inputContent = (document.getElementById('textInput')?.value||'').trim();
+  } else if (activeMode==='image') {
+    const file = document.getElementById('imgFile')?.files[0];
+    if (!file) { showToast('이미지를 선택해주세요', true); return; }
+    inputContent = file.name; inputType='image';
+    imageBase64 = await fileToBase64(file);
+  } else {
+    inputContent = (document.getElementById('urlInput')?.value||'').trim();
+    inputType='url';
+  }
+  if (!inputContent) { showToast('분석할 내용을 입력해주세요', true); return; }
+
+  const resultDiv = document.getElementById('analysisResult');
+  const stepLabels = ['상품 개요 파악','생산 구조 분석','유통 경로 추적','시장 규모 추정','기회 포인트 탐색','아이디어 생성'];
+  const stepIcons = [
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`
+  ];
+
+  resultDiv.innerHTML = `<div class="loading-card mt-16">
+    <div class="loading-header"><div class="spinner"></div><div class="loading-title">AI가 분석하고 있습니다</div></div>
+    <div class="l-steps">${stepLabels.map((s,i)=>`<div class="l-step" id="ls${i}">${stepIcons[i]}${s}</div>`).join('')}</div>
+  </div>`;
+
+  stepLabels.forEach((_,i) => setTimeout(() => { const el=document.getElementById(`ls${i}`); if(el) el.classList.add('done'); }, (i+1)*700));
+
   try {
-    const profileCtx = userProfile
-      ? `\n사용자 프로필: 역량(${userProfile.skills||'미입력'}), 자본(${userProfile.capital||'미입력'}), 관심산업(${userProfile.industry||'미입력'}), 가용시간(${userProfile.time||'미입력'})\n적합도 분석 시 이 프로필을 반영해주세요.` : '';
-
+    const profileCtx = userProfile ? `\n사용자 프로필: 역량(${userProfile.skills||'미입력'}), 자본(${userProfile.capital||'미입력'}), 관심산업(${userProfile.industry||'미입력'}), 가용시간(${userProfile.time||'미입력'})` : '';
     const messages = imageBase64
-      ? [{ role:"user", content:[
-          { type:"image", source:{ type:"base64", media_type:"image/jpeg", data:imageBase64 }},
-          { type:"text", text:`이 상품 이미지를 분석해주세요.${profileCtx}` }
-        ]}]
-      : [{ role:"user", content:`분석 대상: ${inputType==='url'?'URL: ':''}${inputContent}${profileCtx}` }];
+      ? [{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:imageBase64}},{type:'text',text:`이 상품 이미지를 분석해주세요.${profileCtx}`}]}]
+      : [{role:'user',content:`분석 대상: ${inputType==='url'?'URL: ':''}${inputContent}${profileCtx}`}];
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 2000,
-        system: `당신은 비즈니스 역공학(reverse engineering) 전문가입니다.
-사용자가 입력한 상품/서비스를 분석하여 돈이 되는 기회를 발견하도록 도와줍니다.
-모든 분석은 한국어로, 구체적 수치와 함께 제공하세요.
-추정값은 반드시 신뢰도를 표기하세요: ✅확인됨 / ⚠️추정 / ❓불확실
-응답은 반드시 순수 JSON만 출력하세요. 마크다운 없이.
-
-응답 형식:
-{
-  "productName": "상품명",
-  "overview": "상품 개요 2~3문장",
-  "production": "생산 구조 및 원가 추정 (신뢰도 표기 포함)",
-  "distribution": "유통 경로 및 마진 구조",
-  "market": "시장 규모 추정 (국내/글로벌)",
-  "opportunities": ["기회1", "기회2", "기회3"],
-  "ideas": [
-    {"title":"아이디어 제목","description":"구체적 설명 2~3문장","revenueModel":"수익 모델"}
-  ],
-  "reliabilityNote": "분석 신뢰도 전반 코멘트 1문장"
-}`,
+        model:'claude-sonnet-4-6', max_tokens:2000,
+        system:`비즈니스 역공학 전문가입니다. 상품/서비스를 분석하여 돈이 되는 기회를 발견하도록 도와줍니다. 한국어로, 구체적 수치와 함께 제공하세요. 추정값은 ✅확인됨/⚠️추정/❓불확실로 표기. 순수 JSON만 출력:
+{"productName":"상품명","overview":"상품 개요 2~3문장","production":"생산 구조 및 원가 추정","distribution":"유통 경로 및 마진 구조","market":"시장 규모 추정","opportunities":["기회1","기회2","기회3"],"ideas":[{"title":"아이디어","description":"설명 2~3문장","revenueModel":"수익 모델"}],"reliabilityNote":"신뢰도 코멘트 1문장"}`,
         messages
       })
     });
     const data = await res.json();
-    let text = (data.content||[]).map(i=>i.text||'').join('');
-    text = text.replace(/```json|```/g,'').trim();
+    let text = (data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
     const result = JSON.parse(text);
-    currentAnalysis = { ...result, inputContent, inputType, timestamp: new Date().toISOString() };
+    currentAnalysis = {...result, inputContent, inputType, timestamp: new Date().toISOString()};
     renderAnalysisResult(resultDiv, result);
   } catch(e) {
-    resultDiv.innerHTML = `<div class="toss-card mt-16 error-state">
-      <div class="error-icon">⚠️</div>
-      <div class="error-msg">분석 중 오류가 발생했습니다</div>
-      <div class="error-detail">${e.message}</div>
-    </div>`;
+    resultDiv.innerHTML = `<div class="ml-card error-state mt-16"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div class="error-msg">분석 중 오류가 발생했습니다</div><div class="error-detail">${e.message}</div></div>`;
   }
-};
+}
 
 function renderAnalysisResult(container, r) {
   container.innerHTML = `
-    <div class="result-name-bar">
-      <span class="result-name">${r.productName || r.inputContent}</span>
-      <span class="result-badge">AI 분석</span>
+    <div class="result-title-bar mt-16">
+      <div class="result-product-name">${r.productName||r.inputContent}</div>
+      <span class="result-tag">AI 분석</span>
+    </div>
+    ${[
+      {icon:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',label:'상품 개요',val:r.overview},
+      {icon:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',label:'생산 구조',val:r.production},
+      {icon:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',label:'유통 경로',val:r.distribution},
+      {icon:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',label:'시장 규모',val:r.market},
+    ].map(s=>`<div class="ml-card"><div class="card-eyebrow">${s.icon}${s.label}</div><div class="card-body">${s.val}</div></div>`).join('')}
+    <div class="ml-card">
+      <div class="card-eyebrow"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>기회 포인트</div>
+      ${(r.opportunities||[]).map(o=>`<div class="opp-row"><div class="opp-bullet"></div><div class="opp-text">${o}</div></div>`).join('')}
     </div>
 
-    <div class="toss-card">
-      <div class="card-section-label">📋 상품 개요</div>
-      <div class="card-body-text">${r.overview}</div>
-    </div>
-    <div class="toss-card">
-      <div class="card-section-label">🏭 생산 구조</div>
-      <div class="card-body-text">${r.production}</div>
-    </div>
-    <div class="toss-card">
-      <div class="card-section-label">🚚 유통 경로</div>
-      <div class="card-body-text">${r.distribution}</div>
-    </div>
-    <div class="toss-card">
-      <div class="card-section-label">📊 시장 규모</div>
-      <div class="card-body-text">${r.market}</div>
-    </div>
-    <div class="toss-card">
-      <div class="card-section-label">💡 기회 포인트</div>
-      ${r.opportunities?.map(o=>`<div class="opp-row">
-        <div class="opp-dot"></div><div class="opp-text">${o}</div>
-      </div>`).join('')}
-    </div>
-
-    <div class="section-label mt-24">내 생각을 먼저 적어보세요</div>
-    <div class="toss-card">
-      <div class="my-idea-hint">AI가 분석을 제공했습니다. 이 상품에서 어떤 기회가 보이나요?</div>
-      <textarea id="myIdeaInput" class="toss-textarea sm" placeholder="나만의 아이디어를 자유롭게 써보세요..."></textarea>
-      <button class="toss-btn secondary full-width mt-12" onclick="expandMyIdea()">AI로 아이디어 확장하기</button>
+    <div class="section-label mt-20">내 생각을 먼저 적어보세요</div>
+    <div class="ml-card">
+      <div class="my-idea-label">AI 분석을 봤습니다. 이 상품에서 어떤 기회가 보이나요?</div>
+      <textarea id="myIdeaInput" class="ml-textarea sm" placeholder="나만의 아이디어를 자유롭게 써보세요..."></textarea>
+      <button class="btn-full secondary mt-12" id="expandBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+        AI로 아이디어 확장하기
+      </button>
     </div>
     <div id="myIdeaExpanded"></div>
 
-    <div class="section-label mt-24">AI 제안 아이디어</div>
-    ${r.ideas?.map((idea,i) => `
-      <div class="toss-card idea-card-item">
-        <div class="idea-num-row">
-          <div class="idea-num">${i+1}</div>
+    <div class="section-label mt-20">AI 제안 아이디어</div>
+    ${(r.ideas||[]).map((idea,i)=>`
+      <div class="idea-item">
+        <div class="idea-idx">${i+1}</div>
+        <div class="idea-body">
           <div class="idea-title">${idea.title}</div>
+          <div class="idea-desc">${idea.description}</div>
+          <div class="revenue-tag"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>${idea.revenueModel}</div>
         </div>
-        <div class="idea-desc">${idea.description}</div>
-        <div class="idea-revenue-tag">💰 ${idea.revenueModel}</div>
-      </div>
-    `).join('')||''}
+      </div>`).join('')}
 
     <div class="reliability-strip">
-      <span>⚠️ AI 추정 분석</span>
-      <span>${r.reliabilityNote}</span>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>AI 추정 분석 · ${r.reliabilityNote}</span>
     </div>
 
-    <div class="action-row mt-16">
-      <button class="toss-btn primary half" onclick="saveAnalysis()">아이디어함 저장</button>
-      <button class="toss-btn secondary half" onclick="goToEval()">실현가능성 평가</button>
+    <div class="btn-row">
+      <button class="btn-full" id="saveBtn">아이디어함 저장</button>
+      <button class="btn-full secondary" id="evalBtn">실현가능성 평가</button>
     </div>
   `;
+
+  document.getElementById('expandBtn').addEventListener('click', expandIdea);
+  document.getElementById('saveBtn').addEventListener('click', saveAnalysis);
+  document.getElementById('evalBtn').addEventListener('click', function() { goPage('eval'); });
 }
 
-window.expandMyIdea = async function() {
-  const myIdea = document.getElementById('myIdeaInput')?.value?.trim();
-  if (!myIdea) { showToast('아이디어를 먼저 입력해주세요', 'error'); return; }
+async function expandIdea() {
+  const myIdea = (document.getElementById('myIdeaInput')?.value||'').trim();
+  if (!myIdea) { showToast('아이디어를 먼저 입력해주세요', true); return; }
   const div = document.getElementById('myIdeaExpanded');
-  div.innerHTML = `<div class="toss-card loading-simple">🤖 아이디어 확장 중...</div>`;
+  div.innerHTML = `<div class="ml-card loading-inline">아이디어 확장 중...</div>`;
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:"claude-sonnet-4-6", max_tokens:1000,
-        system:`사용자의 비즈니스 아이디어를 구체화하는 전문가입니다. JSON만 출력:
-{"expanded":"확장된 설명 3~4문장","revenueModel":"수익 모델","firstStep":"첫 번째 실행 단계"}`,
-        messages:[{role:"user",content:`상품: ${currentAnalysis?.productName}\n내 아이디어: ${myIdea}`}]
+        model:'claude-sonnet-4-6', max_tokens:800,
+        system:`비즈니스 아이디어 확장 전문가. JSON만 출력: {"expanded":"확장 설명 3~4문장","revenueModel":"수익 모델","firstStep":"첫 번째 실행 단계"}`,
+        messages:[{role:'user',content:`상품: ${currentAnalysis?.productName}\n내 아이디어: ${myIdea}`}]
       })
     });
     const data = await res.json();
     let text = (data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
     const r = JSON.parse(text);
-    div.innerHTML = `
-      <div class="toss-card expanded-card">
-        <div class="card-section-label">✨ AI가 확장한 내 아이디어</div>
-        <div class="card-body-text">${r.expanded}</div>
-        <div class="idea-revenue-tag mt-8">💰 ${r.revenueModel}</div>
-        <div class="first-step-tag">🚀 첫 단계: ${r.firstStep}</div>
-      </div>`;
+    div.innerHTML = `<div class="ml-card accent">
+      <div class="card-eyebrow"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI가 확장한 내 아이디어</div>
+      <div class="card-body">${r.expanded}</div>
+      <div class="revenue-tag mt-8"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>${r.revenueModel}</div>
+      <div style="font-size:13px;color:var(--green);font-weight:600;margin-top:8px">🚀 첫 단계: ${r.firstStep}</div>
+    </div>`;
     if (currentAnalysis) currentAnalysis.myIdea = myIdea;
   } catch(e) {
-    div.innerHTML = `<div class="toss-card error-state"><div class="error-msg">확장 실패: ${e.message}</div></div>`;
-  }
-};
-
-window.saveAnalysis = async function() {
-  if (!currentAnalysis) { showToast('분석 결과가 없습니다', 'error'); return; }
-  try {
-    await addDoc(collection(db, `users/${currentUser.uid}/analyses`), {
-      ...currentAnalysis, savedAt: serverTimestamp(), evaluated: false
-    });
-    showToast('아이디어함에 저장됐습니다 ✅');
-  } catch(e) { showToast('저장 실패: ' + e.message, 'error'); }
-};
-
-window.goToEval = function() {
-  if (!currentAnalysis) { showToast('분석 결과가 없습니다', 'error'); return; }
-  renderPage('eval');
-};
-
-// ─── IDEAS PAGE ───────────────────────────────────────
-async function renderIdeas(main) {
-  main.innerHTML = `
-    <div class="page-hero">
-      <div class="hero-eyebrow">아이디어함</div>
-      <h1 class="hero-title">저장된 분석</h1>
-    </div>
-    <div class="loading-simple center-text">불러오는 중...</div>`;
-
-  try {
-    const snap = await getDocs(query(collection(db, `users/${currentUser.uid}/analyses`), orderBy('savedAt','desc')));
-    const list = snap.docs.map(d => ({id:d.id,...d.data()}));
-
-    const evalCount = list.filter(a=>a.evaluated).length;
-    const topKeys = {};
-    list.forEach(a => { const k = (a.productName||'기타').split(' ')[0]; topKeys[k]=(topKeys[k]||0)+1; });
-    const topThree = Object.entries(topKeys).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0]).join(' · ');
-
-    main.innerHTML = `
-      <div class="page-hero">
-        <div class="hero-eyebrow">아이디어함</div>
-        <h1 class="hero-title">저장된 분석</h1>
-      </div>
-      <div class="stat-row">
-        <div class="stat-box"><div class="stat-num">${list.length}</div><div class="stat-label">총 분석</div></div>
-        <div class="stat-box"><div class="stat-num">${evalCount}</div><div class="stat-label">평가 완료</div></div>
-        <div class="stat-box wide"><div class="stat-num small">${topThree||'-'}</div><div class="stat-label">관심 분야</div></div>
-      </div>
-      ${list.length === 0
-        ? `<div class="empty-state">
-            <div class="empty-icon">🔍</div>
-            <div class="empty-title">아직 분석이 없습니다</div>
-            <div class="empty-desc">렌즈 탭에서 상품을 분석해보세요</div>
-            <button class="toss-btn primary mt-16" onclick="renderPage('lens')" style="width:auto;padding:12px 28px">분석 시작하기</button>
-          </div>`
-        : list.map(a => `
-          <div class="toss-card idea-list-card" onclick="toggleDetail('${a.id}')">
-            <div class="idea-list-row">
-              <div>
-                <div class="idea-list-name">${a.productName||a.inputContent}</div>
-                <div class="idea-list-opp">${a.opportunities?.[0]||''}</div>
-              </div>
-              <div class="idea-list-right">
-                ${a.evaluated ? '<span class="pill-green">평가완료</span>' : ''}
-                <span class="idea-date">${formatDate(a.savedAt)}</span>
-                <span class="chevron">›</span>
-              </div>
-            </div>
-            <div id="d-${a.id}" class="idea-detail-panel" style="display:none">
-              <div class="detail-divider"></div>
-              ${a.overview ? `<div class="detail-row"><div class="detail-label">개요</div><div class="detail-val">${a.overview}</div></div>` : ''}
-              ${a.production ? `<div class="detail-row"><div class="detail-label">생산구조</div><div class="detail-val">${a.production}</div></div>` : ''}
-              ${a.myIdea ? `<div class="detail-row"><div class="detail-label">내 아이디어</div><div class="detail-val highlight">${a.myIdea}</div></div>` : ''}
-              <div class="detail-actions">
-                <button class="toss-btn secondary sm-btn" onclick="event.stopPropagation();loadForEval('${a.id}')">📊 평가하기</button>
-                <button class="toss-btn danger sm-btn" onclick="event.stopPropagation();deleteItem('${a.id}')">삭제</button>
-              </div>
-            </div>
-          </div>
-        `).join('')}
-    `;
-  } catch(e) {
-    main.innerHTML += `<div class="toss-card error-state"><div class="error-msg">${e.message}</div></div>`;
+    div.innerHTML = `<div class="ml-card error-state"><div class="error-msg">${e.message}</div></div>`;
   }
 }
 
-window.toggleDetail = function(id) {
-  const el = document.getElementById(`d-${id}`);
-  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
-};
-
-window.deleteItem = async function(id) {
-  if (!confirm('삭제하시겠습니까?')) return;
+async function saveAnalysis() {
+  if (!currentAnalysis) { showToast('분석 결과가 없습니다', true); return; }
   try {
-    await deleteDoc(doc(db, `users/${currentUser.uid}/analyses`, id));
-    showToast('삭제됐습니다');
-    renderPage('ideas');
-  } catch(e) { showToast('삭제 실패', 'error'); }
-};
+    await db.collection(`users/${currentUser.uid}/analyses`).add({...currentAnalysis, savedAt: firebase.firestore.FieldValue.serverTimestamp(), evaluated:false});
+    showToast('아이디어함에 저장됐습니다 ✅');
+  } catch(e) { showToast('저장 실패: '+e.message, true); }
+}
 
-window.loadForEval = async function(id) {
-  const snap = await getDocs(collection(db, `users/${currentUser.uid}/analyses`));
-  const found = snap.docs.find(d => d.id === id);
-  if (found) { currentAnalysis = {id: found.id, ...found.data()}; renderPage('eval'); }
-};
+// ── IDEAS ──────────────────────────────────────────
+async function renderIdeas(main) {
+  main.innerHTML = `<div class="page-hero"><div class="hero-badge"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>아이디어함</div><h1 class="hero-title">저장된 분석</h1></div><div class="loading-inline"><div class="spinner"></div>불러오는 중...</div>`;
+  try {
+    const snap = await db.collection(`users/${currentUser.uid}/analyses`).orderBy('savedAt','desc').get();
+    const list = snap.docs.map(d=>({id:d.id,...d.data()}));
+    const evalCount = list.filter(a=>a.evaluated).length;
+    const topKeys={};
+    list.forEach(a=>{ const k=(a.productName||'기타').split(' ')[0]; topKeys[k]=(topKeys[k]||0)+1; });
+    const top3 = Object.entries(topKeys).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0]).join(' · ');
 
-// ─── EVAL PAGE ────────────────────────────────────────
+    let html = `<div class="page-hero"><div class="hero-badge"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>아이디어함</div><h1 class="hero-title">저장된 분석</h1></div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-num">${list.length}</div><div class="stat-label">총 분석</div></div>
+      <div class="stat-box"><div class="stat-num">${evalCount}</div><div class="stat-label">평가 완료</div></div>
+      <div class="stat-box" style="flex:1.5"><div class="stat-num sm">${top3||'-'}</div><div class="stat-label">관심 분야</div></div>
+    </div>`;
+
+    if (list.length===0) {
+      html += `<div class="empty-state"><div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div><div class="empty-title">아직 저장된 분석이 없습니다</div><div class="empty-desc">렌즈 탭에서 상품을 분석하면<br>여기에 저장됩니다</div><button class="empty-btn" data-goto="lens"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>렌즈로 이동</button></div>`;
+    } else {
+      html += list.map(a=>`
+        <div class="idea-list-card" data-id="${a.id}">
+          <div class="ilc-main">
+            <div><div class="ilc-name">${a.productName||a.inputContent}</div><div class="ilc-preview">${a.opportunities?.[0]||''}</div></div>
+            <div class="ilc-right">
+              ${a.evaluated?'<span class="pill green">평가완료</span>':''}
+              <span class="date-text">${fmtDate(a.savedAt)}</span>
+              <div class="chevron-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+          </div>
+          <div class="detail-panel" id="dp-${a.id}">
+            <div class="detail-divider"></div>
+            ${a.overview?`<div class="detail-row"><div class="detail-key">개요</div><div class="detail-val">${a.overview}</div></div>`:''}
+            ${a.myIdea?`<div class="detail-row"><div class="detail-key">내 아이디어</div><div class="detail-val hl">${a.myIdea}</div></div>`:''}
+            <div class="detail-actions">
+              <button class="btn-sm green" data-eval="${a.id}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>평가하기</button>
+              <button class="btn-sm red" data-del="${a.id}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>삭제</button>
+            </div>
+          </div>
+        </div>`).join('');
+    }
+    main.innerHTML = html;
+
+    main.addEventListener('click', async function(e) {
+      const gotoBtn = e.target.closest('[data-goto]');
+      if (gotoBtn) { goPage(gotoBtn.dataset.goto); return; }
+
+      const evalBtn = e.target.closest('[data-eval]');
+      if (evalBtn) {
+        const id = evalBtn.dataset.eval;
+        const found = list.find(a=>a.id===id);
+        if (found) { currentAnalysis = found; goPage('eval'); }
+        return;
+      }
+      const delBtn = e.target.closest('[data-del]');
+      if (delBtn) {
+        if (!confirm('삭제하시겠습니까?')) return
+        await db.collection(`users/${currentUser.uid}/analyses`).doc(delBtn.dataset.del).delete();
+        showToast('삭제됐습니다');
+        renderIdeas(main);
+        return;
+      }
+      const card = e.target.closest('.idea-list-card');
+      if (card) {
+        const dp = document.getElementById(`dp-${card.dataset.id}`);
+        if (dp) dp.style.display = dp.style.display==='none'||!dp.style.display ? 'block' : 'none';
+      }
+    });
+  } catch(e) {
+    main.innerHTML += `<div class="ml-card error-state"><div class="error-msg">${e.message}</div></div>`;
+  }
+}
+
+// ── EVAL ───────────────────────────────────────────
 function renderEval(main) {
   if (!currentAnalysis) {
-    main.innerHTML = `
-      <div class="page-hero"><div class="hero-eyebrow">평가실</div><h1 class="hero-title">실현가능성 평가</h1></div>
-      <div class="empty-state">
-        <div class="empty-icon">📊</div>
-        <div class="empty-title">평가할 아이디어를 선택해주세요</div>
-        <div class="empty-desc">아이디어함에서 아이디어를 선택하거나<br>렌즈에서 분석 후 바로 평가할 수 있습니다</div>
-        <button class="toss-btn primary mt-16" onclick="renderPage('ideas')" style="width:auto;padding:12px 28px">아이디어함으로</button>
-      </div>`;
+    main.innerHTML = `<div class="page-hero"><div class="hero-badge">평가실</div><h1 class="hero-title">실현가능성 평가</h1></div>
+    <div class="empty-state"><div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+    <div class="empty-title">평가할 아이디어를 선택해주세요</div><div class="empty-desc">아이디어함에서 선택하거나<br>렌즈 분석 후 바로 평가할 수 있습니다</div>
+    <button class="empty-btn" id="toIdeasBtn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>아이디어함으로</button></div>`;
+    document.getElementById('toIdeasBtn').addEventListener('click', () => goPage('ideas'));
     return;
   }
 
   main.innerHTML = `
-    <div class="page-hero">
-      <div class="hero-eyebrow">평가실</div>
-      <h1 class="hero-title">실현가능성 평가</h1>
+    <div class="page-hero"><div class="hero-badge">평가실</div><h1 class="hero-title">실현가능성 평가</h1></div>
+    <div class="selected-bar">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <div class="selected-bar-inner"><div class="selected-label">평가 대상</div><div class="selected-name">${currentAnalysis.productName||currentAnalysis.inputContent}</div></div>
     </div>
-    <div class="toss-card selected-item-bar">
-      <div class="selected-label">평가 대상</div>
-      <div class="selected-name">${currentAnalysis.productName || currentAnalysis.inputContent}</div>
+    ${!userProfile?`<div class="notice-card"><div class="notice-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="notice-title">프로필을 설정하면 더 정확합니다</div><div class="notice-desc">나의 역량, 자본을 입력하면 개인화된 평가를 받을 수 있어요</div><button class="notice-link" id="goSettings2">프로필 설정하기 →</button></div></div>`:''}
+    <div class="eval-meta-card">
+      <div class="eval-meta-title">5가지 항목으로 평가합니다</div>
+      <div class="eval-meta-tags"><span class="eval-meta-tag">시장성</span><span class="eval-meta-tag">실행 난이도</span><span class="eval-meta-tag">초기 자본</span><span class="eval-meta-tag">경쟁 강도</span><span class="eval-meta-tag">나의 적합도</span></div>
     </div>
-    ${!userProfile ? `
-      <div class="toss-card notice-card">
-        <div class="notice-icon">💡</div>
-        <div>
-          <div class="notice-title">프로필을 설정하면 더 정확합니다</div>
-          <div class="notice-desc">나의 역량, 자본, 관심 분야를 입력하면 개인화된 평가를 받을 수 있어요</div>
-          <button class="toss-btn ghost mt-8 compact" onclick="renderPage('settings')">프로필 설정하기 →</button>
-        </div>
-      </div>` : ''}
-    <div class="toss-card eval-intro">
-      <div class="eval-intro-title">5가지 항목으로 평가합니다</div>
-      <div class="eval-intro-items">
-        <div class="eval-intro-item"><span>시장성</span><span class="eval-dot">·</span><span>실행 난이도</span><span class="eval-dot">·</span><span>초기 자본</span></div>
-        <div class="eval-intro-item"><span>경쟁 강도</span><span class="eval-dot">·</span><span>나의 적합도</span></div>
-      </div>
-    </div>
-    <button class="toss-btn primary full-width" onclick="runEval()">평가 시작하기</button>
+    <button class="btn-full" id="startEvalBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      평가 시작하기
+    </button>
     <div id="evalResult"></div>
   `;
+  document.getElementById('goSettings2')?.addEventListener('click', () => goPage('settings'));
+  document.getElementById('startEvalBtn').addEventListener('click', runEval);
 }
 
-window.runEval = async function() {
+async function runEval() {
   const div = document.getElementById('evalResult');
-  div.innerHTML = `<div class="toss-card loading-simple center-text mt-16">🤖 실현가능성 평가 중...</div>`;
+  div.innerHTML = `<div class="ml-card loading-inline mt-16"><div class="spinner"></div>실현가능성 평가 중...</div>`;
   try {
-    const profileCtx = userProfile
-      ? `사용자 프로필: 역량(${userProfile.skills}), 자본(${userProfile.capital}), 관심산업(${userProfile.industry}), 가용시간(${userProfile.time})`
-      : '사용자 프로필 없음 - 일반 기준으로 평가';
-
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
+    const profileCtx = userProfile ? `사용자: 역량(${userProfile.skills}), 자본(${userProfile.capital}), 산업(${userProfile.industry}), 시간(${userProfile.time})` : '일반 기준 평가';
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:"claude-sonnet-4-6", max_tokens:1500,
-        system:`비즈니스 아이디어 실현가능성 평가 전문가입니다.
-${profileCtx}
-JSON만 출력:
-{
-  "scores":{"market":{"score":0,"reason":""},"execution":{"score":0,"reason":""},"capital":{"score":0,"reason":""},"competition":{"score":0,"reason":""},"fit":{"score":0,"reason":""}},
-  "total":0,"grade":"S|A|B|C",
-  "summary":"종합 평가 2문장",
-  "strengthPoint":"가장 강한 점",
-  "weakPoint":"가장 약한 점",
-  "nextAction":"당장 해볼 수 있는 첫 번째 액션 구체적으로"
-}`,
-        messages:[{role:"user",content:`상품: ${currentAnalysis.productName}\n개요: ${currentAnalysis.overview}\n기회: ${(currentAnalysis.opportunities||[]).join(', ')}\n아이디어: ${(currentAnalysis.ideas||[]).map(i=>i.title).join(', ')}`}]
+        model:'claude-sonnet-4-6', max_tokens:1500,
+        system:`비즈니스 실현가능성 평가 전문가. ${profileCtx}. JSON만 출력:
+{"scores":{"market":{"score":0,"reason":""},"execution":{"score":0,"reason":""},"capital":{"score":0,"reason":""},"competition":{"score":0,"reason":""},"fit":{"score":0,"reason":""}},"total":0,"grade":"S|A|B|C","summary":"2문장","strengthPoint":"","weakPoint":"","nextAction":"구체적 첫 액션"}`,
+        messages:[{role:'user',content:`상품: ${currentAnalysis.productName}\n개요: ${currentAnalysis.overview}\n기회: ${(currentAnalysis.opportunities||[]).join(', ')}`}]
       })
     });
     const data = await res.json();
     let text = (data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
     const ev = JSON.parse(text);
-
-    const gradeColors = {S:'#00C896',A:'#4CAF50',B:'#FFC107',C:'#FF5722'};
-    const gc = gradeColors[ev.grade] || '#00C896';
+    const gc = {S:'#05C072',A:'#4CAF50',B:'#F59E0B',C:'#EF4444'}[ev.grade]||'#05C072';
     const labels = {market:'시장성',execution:'실행 난이도',capital:'초기 자본',competition:'경쟁 강도',fit:'나의 적합도'};
-
     div.innerHTML = `
-      <div class="grade-hero" style="border-color:${gc}20;background:${gc}08">
+      <div class="grade-hero mt-16" style="border-color:${gc}30;background:${gc}08">
         <div class="grade-letter" style="color:${gc}">${ev.grade}</div>
-        <div class="grade-score" style="color:${gc}">${ev.total}점</div>
-        <div class="grade-max">/ 100점</div>
+        <div class="grade-pts" style="color:${gc}">${ev.total}점 <span class="grade-pts-max">/ 100점</span></div>
         <div class="grade-summary">${ev.summary}</div>
       </div>
-
-      <canvas id="radarCanvas" style="max-width:280px;width:100%;margin:0 auto;display:block"></canvas>
-
-      <div class="section-label mt-24">항목별 점수</div>
-      ${Object.entries(ev.scores).map(([k,v]) => `
-        <div class="toss-card score-card">
-          <div class="score-row">
-            <span class="score-label">${labels[k]}</span>
-            <span class="score-num" style="color:${gc}">${v.score}<span class="score-denom">/20</span></span>
+      <canvas id="radarCanvas" style="max-width:280px;width:100%;margin:0 auto 8px;display:block"></canvas>
+      <div class="section-label mt-16">항목별 점수</div>
+      ${Object.entries(ev.scores).map(([k,v])=>`
+        <div class="ml-card score-card">
+          <div class="score-header">
+            <div class="score-label-text">${labels[k]}</div>
+            <div class="score-pts" style="color:${gc}">${v.score}<span class="score-pts-max">/20</span></div>
           </div>
-          <div class="score-bar-bg">
-            <div class="score-bar-fill" style="width:${v.score/20*100}%;background:${gc}"></div>
-          </div>
-          <div class="score-reason">${v.reason}</div>
-        </div>
-      `).join('')}
-
-      <div class="section-label mt-24">종합 인사이트</div>
-      <div class="toss-card">
-        <div class="insight-row green"><span class="insight-icon">✅</span><span>${ev.strengthPoint}</span></div>
+          <div class="score-bar-bg"><div class="score-bar-fill" style="width:${v.score/20*100}%;background:${gc}"></div></div>
+          <div class="score-reason-text">${v.reason}</div>
+        </div>`).join('')}
+      <div class="section-label mt-20">종합 인사이트</div>
+      <div class="ml-card">
+        <div class="insight-item"><div class="insight-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke:var(--green)"><polyline points="20 6 9 17 4 12"/></svg></div><span style="color:#065F46">${ev.strengthPoint}</span></div>
         <div class="insight-divider"></div>
-        <div class="insight-row yellow"><span class="insight-icon">⚠️</span><span>${ev.weakPoint}</span></div>
+        <div class="insight-item"><div class="insight-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke:var(--amber)"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><span style="color:#92400E">${ev.weakPoint}</span></div>
         <div class="insight-divider"></div>
-        <div class="insight-row blue"><span class="insight-icon">🚀</span><span>${ev.nextAction}</span></div>
+        <div class="insight-item"><div class="insight-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke:var(--indigo)"><polygon points="5 3 19 12 5 21 5 3"/></svg></div><span style="color:#1E3A8A">${ev.nextAction}</span></div>
       </div>
-
-      <div class="action-row mt-16">
-        <button class="toss-btn primary half" onclick="genDraft()">사업 초안 생성</button>
-        <button class="toss-btn secondary half" onclick="renderPage('cases')">유사 사례 탐구</button>
+      <div class="btn-row mt-16">
+        <button class="btn-full" id="draftBtn">사업 초안 생성</button>
+        <button class="btn-full secondary" id="casesBtn">유사 사례 탐구</button>
       </div>
       <div id="draftResult"></div>
     `;
-
     setTimeout(() => {
       const ctx = document.getElementById('radarCanvas')?.getContext('2d');
       if (ctx) {
         if (radarChart) radarChart.destroy();
         radarChart = new Chart(ctx, {
           type:'radar',
-          data:{
-            labels:['시장성','실행','자본','경쟁','적합도'],
-            datasets:[{
-              data: Object.values(ev.scores).map(s=>s.score),
-              backgroundColor: gc + '22',
-              borderColor: gc,
-              pointBackgroundColor: gc,
-              pointRadius: 4,
-              borderWidth: 2
-            }]
-          },
-          options:{
-            scales:{r:{min:0,max:20,stepSize:5,
-              ticks:{color:'#999',font:{size:10},backdropColor:'transparent'},
-              grid:{color:'#E8E8E8'},
-              pointLabels:{color:'#333',font:{size:12,weight:'600'}}
-            }},
-            plugins:{legend:{display:false}},
-            elements:{line:{tension:0.2}}
-          }
+          data:{ labels:['시장성','실행','자본','경쟁','적합도'], datasets:[{ data:Object.values(ev.scores).map(s=>s.score), backgroundColor:gc+'22', borderColor:gc, pointBackgroundColor:gc, pointRadius:4, borderWidth:2 }] },
+          options:{ scales:{ r:{ min:0, max:20, ticks:{color:'#999',font:{size:10},backdropColor:'transparent'}, grid:{color:'#ECEEF4'}, pointLabels:{color:'#0F1117',font:{size:12,weight:'600'}} } }, plugins:{legend:{display:false}}, elements:{line:{tension:0.2}} }
         });
       }
     }, 100);
-
+    document.getElementById('draftBtn').addEventListener('click', genDraft);
+    document.getElementById('casesBtn').addEventListener('click', () => goPage('cases'));
     if (currentUser && currentAnalysis.id) {
       try {
-        await addDoc(collection(db, `users/${currentUser.uid}/evaluations`), {
-          analysisId: currentAnalysis.id, productName: currentAnalysis.productName,
-          scores: ev.scores, total: ev.total, grade: ev.grade,
-          createdAt: serverTimestamp()
-        });
-        await updateDoc(doc(db, `users/${currentUser.uid}/analyses`, currentAnalysis.id), {evaluated:true});
-        currentAnalysis.evalResult = ev;
+        await db.collection(`users/${currentUser.uid}/evaluations`).add({ analysisId:currentAnalysis.id, productName:currentAnalysis.productName, scores:ev.scores, total:ev.total, grade:ev.grade, createdAt:firebase.firestore.FieldValue.serverTimestamp() });
+        await db.collection(`users/${currentUser.uid}/analyses`).doc(currentAnalysis.id).update({evaluated:true});
       } catch(e) {}
     }
   } catch(e) {
-    div.innerHTML = `<div class="toss-card error-state"><div class="error-msg">평가 실패: ${e.message}</div></div>`;
+    div.innerHTML = `<div class="ml-card error-state mt-16"><div class="error-msg">평가 실패: ${e.message}</div></div>`;
   }
-};
+}
 
-window.genDraft = async function() {
+async function genDraft() {
   const div = document.getElementById('draftResult');
-  div.innerHTML = `<div class="toss-card loading-simple center-text mt-16">📄 사업 초안 작성 중...</div>`;
+  div.innerHTML = `<div class="ml-card loading-inline mt-16"><div class="spinner"></div>사업 초안 작성 중...</div>`;
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:"claude-sonnet-4-6", max_tokens:1500,
-        system:`1페이지 사업 초안을 작성하는 전문가입니다. JSON만 출력:
-{"bizName":"사업명","oneLiner":"한줄 정의","target":"타깃 고객","value":"핵심 가치","revenue":"수익 모델","plan90":["1개월차 실행","2개월차 실행","3개월차 실행"],"investment":"예상 초기 투자금"}`,
-        messages:[{role:"user",content:`상품: ${currentAnalysis.productName}\n기회: ${(currentAnalysis.opportunities||[]).join(', ')}\n아이디어: ${(currentAnalysis.ideas||[]).map(i=>i.title+': '+i.description).join('\n')}`}]
+        model:'claude-sonnet-4-6', max_tokens:1200,
+        system:`사업 초안 전문가. JSON만 출력: {"bizName":"","oneLiner":"","target":"","value":"","revenue":"","plan90":["1개월차","2개월차","3개월차"],"investment":""}`,
+        messages:[{role:'user',content:`상품: ${currentAnalysis.productName}\n기회: ${(currentAnalysis.opportunities||[]).join(', ')}\n아이디어: ${(currentAnalysis.ideas||[]).map(i=>i.title).join(', ')}`}]
       })
     });
     const data = await res.json();
     let text = (data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
     const d = JSON.parse(text);
     div.innerHTML = `
-      <div class="section-label mt-24">사업 초안</div>
-      <div class="toss-card draft-card">
-        <div class="draft-biz-name">${d.bizName}</div>
-        <div class="draft-oneliner">"${d.oneLiner}"</div>
-        <div class="draft-divider"></div>
-        <div class="draft-grid">
-          <div class="draft-item"><div class="draft-key">타깃</div><div class="draft-val">${d.target}</div></div>
-          <div class="draft-item"><div class="draft-key">가치</div><div class="draft-val">${d.value}</div></div>
-          <div class="draft-item"><div class="draft-key">수익</div><div class="draft-val">${d.revenue}</div></div>
-          <div class="draft-item"><div class="draft-key">투자</div><div class="draft-val">${d.investment}</div></div>
-        </div>
-        <div class="draft-divider"></div>
-        <div class="draft-plan-title">첫 90일 실행 계획</div>
-        ${(d.plan90||[]).map((p,i)=>`
-          <div class="draft-plan-row">
-            <div class="draft-plan-month">${i+1}개월차</div>
-            <div class="draft-plan-content">${p}</div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  } catch(e) {
-    div.innerHTML = `<div class="toss-card error-state"><div class="error-msg">초안 생성 실패: ${e.message}</div></div>`;
-  }
-};
-
-// ─── CASES PAGE ───────────────────────────────────────
-function renderCases(main) {
-  if (!currentAnalysis) {
-    main.innerHTML = `
-      <div class="page-hero"><div class="hero-eyebrow">사례탐구</div><h1 class="hero-title">유사 사례</h1></div>
-      <div class="empty-state">
-        <div class="empty-icon">📚</div>
-        <div class="empty-title">분석된 상품이 없습니다</div>
-        <div class="empty-desc">렌즈에서 상품을 분석하면<br>유사 사례를 탐구할 수 있습니다</div>
-        <button class="toss-btn primary mt-16" onclick="renderPage('lens')" style="width:auto;padding:12px 28px">렌즈로 이동</button>
+      <div class="section-label mt-20">사업 초안</div>
+      <div class="ml-card accent">
+        <div class="draft-name">${d.bizName}</div>
+        <div class="draft-liner">"${d.oneLiner}"</div>
+        <div class="ml-divider"></div>
+        <div class="draft-kv"><div class="draft-k">타깃</div><div class="draft-v">${d.target}</div></div>
+        <div class="draft-kv"><div class="draft-k">가치</div><div class="draft-v">${d.value}</div></div>
+        <div class="draft-kv"><div class="draft-k">수익</div><div class="draft-v">${d.revenue}</div></div>
+        <div class="draft-kv"><div class="draft-k">투자</div><div class="draft-v">${d.investment}</div></div>
+        <div class="ml-divider"></div>
+        <div class="section-label mb-12">첫 90일 실행 계획</div>
+        ${(d.plan90||[]).map((p,i)=>`<div class="draft-plan-row"><div class="draft-month">${i+1}개월차</div><div class="draft-v">${p}</div></div>`).join('')}
       </div>`;
-    return;
+  } catch(e) {
+    div.innerHTML = `<div class="ml-card error-state mt-16"><div class="error-msg">${e.message}</div></div>`;
   }
-
-  main.innerHTML = `
-    <div class="page-hero">
-      <div class="hero-eyebrow">사례탐구</div>
-      <h1 class="hero-title">유사 사례</h1>
-    </div>
-    <div class="toss-card selected-item-bar">
-      <div class="selected-label">분석 대상</div>
-      <div class="selected-name">${currentAnalysis.productName || currentAnalysis.inputContent}</div>
-    </div>
-    <button class="toss-btn primary full-width" onclick="loadCases()">사례 탐색하기</button>
-    <div id="casesResult"></div>
-  `;
 }
 
-window.loadCases = async function() {
+// ── CASES ──────────────────────────────────────────
+function renderCases(main) {
+  if (!currentAnalysis) {
+    main.innerHTML = `<div class="page-hero"><div class="hero-badge">사례탐구</div><h1 class="hero-title">유사 사례</h1></div>
+    <div class="empty-state"><div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+    <div class="empty-title">분석된 상품이 없습니다</div><div class="empty-desc">렌즈에서 상품을 분석하면<br>유사 사례를 탐구할 수 있습니다</div>
+    <button class="empty-btn" id="toLensBtn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>렌즈로 이동</button></div>`;
+    document.getElementById('toLensBtn').addEventListener('click', () => goPage('lens'));
+    return;
+  }
+  main.innerHTML = `
+    <div class="page-hero"><div class="hero-badge">사례탐구</div><h1 class="hero-title">유사 사례</h1></div>
+    <div class="selected-bar">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <div class="selected-bar-inner"><div class="selected-label">분석 대상</div><div class="selected-name">${currentAnalysis.productName||currentAnalysis.inputContent}</div></div>
+    </div>
+    <button class="btn-full" id="loadCasesBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      사례 탐색하기
+    </button>
+    <div id="casesResult"></div>
+  `;
+  document.getElementById('loadCasesBtn').addEventListener('click', loadCases);
+}
+
+async function loadCases() {
   const div = document.getElementById('casesResult');
-  div.innerHTML = `<div class="toss-card loading-simple center-text mt-16">🔍 국내외 사례 탐색 중...</div>`;
+  div.innerHTML = `<div class="ml-card loading-inline mt-16"><div class="spinner"></div>국내외 사례 탐색 중...</div>`;
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:"claude-sonnet-4-6", max_tokens:2000,
-        system:`비즈니스 사례 전문가입니다. 국내외 성공/실패 사례를 제공합니다. JSON만 출력:
-{"cases":[{"name":"회사/사례명","country":"국내|해외","type":"성공|실패","strategy":"핵심 전략","reason":"성공 또는 실패 이유","insight":"내 아이디어에 주는 시사점"}]}`,
-        messages:[{role:"user",content:`상품: ${currentAnalysis.productName}\n기회: ${(currentAnalysis.opportunities||[]).join(', ')}\n아이디어: ${(currentAnalysis.ideas||[]).map(i=>i.title).join(', ')}\n\n유사한 국내외 성공/실패 사례 4~5개를 찾아주세요.`}]
+        model:'claude-sonnet-4-6', max_tokens:2000,
+        system:`비즈니스 사례 전문가. JSON만 출력: {"cases":[{"name":"","country":"국내|해외","type":"성공|실패","strategy":"","reason":"","insight":""}]}`,
+        messages:[{role:'user',content:`상품: ${currentAnalysis.productName}\n기회: ${(currentAnalysis.opportunities||[]).join(', ')}\n아이디어: ${(currentAnalysis.ideas||[]).map(i=>i.title).join(', ')}\n유사 국내외 성공/실패 사례 4~5개`}]
       })
     });
     const data = await res.json();
     let text = (data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
     const r = JSON.parse(text);
     div.innerHTML = `<div class="section-label mt-16">발견된 사례</div>` +
-      (r.cases||[]).map(c => `
-        <div class="toss-card case-card ${c.type==='성공'?'case-success':'case-fail'}">
-          <div class="case-header-row">
-            <div class="case-name">${c.name}</div>
-            <div class="case-pills">
-              <span class="pill-country">${c.country}</span>
-              <span class="${c.type==='성공'?'pill-green':'pill-red'}">${c.type}</span>
-            </div>
+      (r.cases||[]).map(c=>`
+        <div class="case-card ${c.type==='성공'?'success':'fail'}">
+          <div class="case-top"><div class="case-name">${c.name}</div>
+            <div class="case-pills"><span class="pill gray">${c.country}</span><span class="pill ${c.type==='성공'?'green':''}" style="${c.type!=='성공'?'background:var(--danger-bg);color:var(--danger)':''}">${c.type}</span></div>
           </div>
-          <div class="case-detail-row"><span class="case-key">전략</span><span>${c.strategy}</span></div>
-          <div class="case-detail-row"><span class="case-key">이유</span><span>${c.reason}</span></div>
-          <div class="case-insight">💡 ${c.insight}</div>
-        </div>
-      `).join('');
+          <div class="case-row"><span class="case-key">전략</span>${c.strategy}</div>
+          <div class="case-row"><span class="case-key">이유</span>${c.reason}</div>
+          <div class="case-insight"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${c.insight}</div>
+        </div>`).join('');
   } catch(e) {
-    div.innerHTML = `<div class="toss-card error-state"><div class="error-msg">${e.message}</div></div>`;
+    div.innerHTML = `<div class="ml-card error-state mt-16"><div class="error-msg">${e.message}</div></div>`;
   }
-};
+}
 
-// ─── SETTINGS PAGE ────────────────────────────────────
+// ── SETTINGS ───────────────────────────────────────
 function renderSettings(main) {
-  const p = userProfile || {};
-  const name = currentUser?.displayName || currentUser?.email?.split('@')[0] || '사용자';
-  const email = currentUser?.email || '';
+  const p = userProfile||{};
+  const name = currentUser?.displayName||currentUser?.email?.split('@')[0]||'사용자';
+  const email = currentUser?.email||'';
   const initial = name.charAt(0).toUpperCase();
-
   main.innerHTML = `
-    <div class="page-hero">
-      <div class="hero-eyebrow">설정</div>
-      <h1 class="hero-title">내 계정</h1>
+    <div class="page-hero"><div class="hero-badge">설정</div><h1 class="hero-title">내 계정</h1></div>
+    <div class="ml-card"><div class="profile-card">
+      <div class="avatar-circle">${initial}</div>
+      <div style="flex:1;min-width:0"><div class="profile-name">${name}</div><div class="profile-email" style="font-size:13px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${email}</div></div>
+      <button class="logout-btn" id="logoutBtn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>로그아웃</button>
+    </div></div>
+    <div class="section-label mt-24">내 프로필</div>
+    <div class="ml-card">
+      <div class="profile-hint">입력할수록 평가실이 나에게 맞게 조정됩니다</div>
+      <div class="form-group"><label class="form-label">보유 역량 · 전문성</label><input type="text" id="pSkills" class="ml-input-field" value="${p.skills||''}" placeholder="예) 마케팅, 교육, IT, 영업, 기획..."></div>
+      <div class="form-group mt-12"><label class="form-label">가용 초기 자본</label>
+        <select id="pCapital" class="ml-input-field"><option value="">선택해주세요</option>${['100만원 미만','100~500만원','500만~1천만원','1천만~5천만원','5천만원 이상'].map(v=>`<option value="${v}"${p.capital===v?' selected':''}>${v}</option>`).join('')}</select>
+      </div>
+      <div class="form-group mt-12"><label class="form-label">주당 가용 시간</label>
+        <select id="pTime" class="ml-input-field"><option value="">선택해주세요</option>${['5시간 미만 (부업)','5~15시간 (사이드프로젝트)','15~30시간 (병행창업)','풀타임 (전업)'].map(v=>`<option value="${v}"${p.time===v?' selected':''}>${v}</option>`).join('')}</select>
+      </div>
+      <div class="form-group mt-12"><label class="form-label">관심 산업</label><input type="text" id="pIndustry" class="ml-input-field" value="${p.industry||''}" placeholder="예) 식품, 교육, IT, 커머스, 콘텐츠..."></div>
+      <button class="btn-full mt-16" id="saveProfileBtn">프로필 저장</button>
     </div>
-
-    <div class="toss-card user-profile-card">
-      <div class="user-avatar-circle">${initial}</div>
-      <div class="user-info">
-        <div class="user-name">${name}</div>
-        <div class="user-email">${email}</div>
-      </div>
-      <button class="logout-btn" onclick="logout()">로그아웃</button>
-    </div>
-
-    <div class="section-label mt-24">내 프로필 설정</div>
-    <div class="toss-card">
-      <div class="profile-notice-text">입력할수록 평가실이 나에게 맞게 조정됩니다</div>
-
-      <div class="form-group mt-16">
-        <label class="form-label">보유 역량 · 전문성</label>
-        <input type="text" id="pSkills" class="toss-input" value="${p.skills||''}" placeholder="예) 마케팅, 교육, IT, 영업, 기획...">
-      </div>
-      <div class="form-group">
-        <label class="form-label">가용 초기 자본</label>
-        <select id="pCapital" class="toss-input toss-select">
-          <option value="">선택해주세요</option>
-          ${['100만원 미만','100~500만원','500만~1천만원','1천만~5천만원','5천만원 이상'].map(v=>
-            `<option value="${v}" ${p.capital===v?'selected':''}>${v}</option>`
-          ).join('')}
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">주당 가용 시간</label>
-        <select id="pTime" class="toss-input toss-select">
-          <option value="">선택해주세요</option>
-          ${['5시간 미만 (부업)','5~15시간 (사이드프로젝트)','15~30시간 (병행창업)','풀타임 (전업)'].map(v=>
-            `<option value="${v}" ${p.time===v?'selected':''}>${v}</option>`
-          ).join('')}
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">관심 산업</label>
-        <input type="text" id="pIndustry" class="toss-input" value="${p.industry||''}" placeholder="예) 식품, 교육, IT, 커머스, 콘텐츠...">
-      </div>
-      <button class="toss-btn primary full-width mt-16" onclick="saveProfileForm()">프로필 저장</button>
-    </div>
-
     <div class="section-label mt-24">데이터 관리</div>
-    <div class="toss-card">
-      <button class="toss-btn danger full-width" onclick="deleteAll()">전체 데이터 삭제</button>
+    <div class="ml-card">
+      <button class="btn-full danger-btn" id="deleteAllBtn">전체 데이터 삭제</button>
       <div class="danger-notice">삭제된 데이터는 복구할 수 없습니다</div>
     </div>
   `;
+  document.getElementById('logoutBtn').addEventListener('click', async function() {
+    if (!confirm('로그아웃 하시겠습니까?')) return;
+    await auth.signOut();
+  });
+  document.getElementById('saveProfileBtn').addEventListener('click', async function() {
+    await saveProfile({ skills:document.getElementById('pSkills')?.value||'', capital:document.getElementById('pCapital')?.value||'', time:document.getElementById('pTime')?.value||'', industry:document.getElementById('pIndustry')?.value||'' });
+  });
+  document.getElementById('deleteAllBtn').addEventListener('click', async function() {
+    if (!confirm('모든 분석 데이터를 삭제합니다. 계속하시겠습니까?')) return;
+    try {
+      const s1 = await db.collection(`users/${currentUser.uid}/analyses`).get();
+      for (const d of s1.docs) await d.ref.delete();
+      const s2 = await db.collection(`users/${currentUser.uid}/evaluations`).get();
+      for (const d of s2.docs) await d.ref.delete();
+      showToast('모든 데이터가 삭제됐습니다');
+    } catch(e) { showToast('삭제 실패', true); }
+  });
 }
 
-window.saveProfileForm = async function() {
-  await saveProfile({
-    skills: document.getElementById('pSkills')?.value || '',
-    capital: document.getElementById('pCapital')?.value || '',
-    time: document.getElementById('pTime')?.value || '',
-    industry: document.getElementById('pIndustry')?.value || ''
-  });
-};
-
-window.deleteAll = async function() {
-  if (!confirm('모든 분석 데이터를 삭제합니다. 계속하시겠습니까?')) return;
-  try {
-    const s1 = await getDocs(collection(db, `users/${currentUser.uid}/analyses`));
-    for (const d of s1.docs) await deleteDoc(d.ref);
-    const s2 = await getDocs(collection(db, `users/${currentUser.uid}/evaluations`));
-    for (const d of s2.docs) await deleteDoc(d.ref);
-    showToast('모든 데이터가 삭제됐습니다');
-  } catch(e) { showToast('삭제 실패', 'error'); }
-};
-
-// ─── UTILS ────────────────────────────────────────────
+// ── UTILS ──────────────────────────────────────────
 function fileToBase64(file) {
-  return new Promise((res, rej) => {
+  return new Promise((res,rej) => {
     const r = new FileReader();
     r.onload = () => res(r.result.split(',')[1]);
     r.onerror = () => rej(new Error('파일 읽기 실패'));
     r.readAsDataURL(file);
   });
 }
-
-function formatDate(ts) {
+function fmtDate(ts) {
   if (!ts) return '';
   const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toLocaleDateString('ko-KR', {month:'short', day:'numeric'});
+  return d.toLocaleDateString('ko-KR',{month:'short',day:'numeric'});
 }
-
-function showToast(msg, type='success') {
+function showToast(msg, isErr=false) {
   const t = document.createElement('div');
-  t.className = `toast ${type==='error'?'toast-error':''}`;
-  t.textContent = msg;
+  t.className = 'toast'+(isErr?' err':'');
+  t.innerHTML = (isErr ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>') + msg;
   document.body.appendChild(t);
-  requestAnimationFrame(() => { t.classList.add('show'); });
-  setTimeout(() => { t.classList.remove('show'); setTimeout(()=>t.remove(), 300); }, 2500);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => { t.classList.remove('show'); setTimeout(()=>t.remove(),300); }, 2500);
 }
-
-// Init onboarding
-renderOnboardingSlide();
 </script>
-
-<style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --white: #FFFFFF;
-  --bg: #F7F8FA;
-  --bg2: #FFFFFF;
-  --border: #F0F0F0;
-  --border2: #E8E8E8;
-  --text: #191919;
-  --text2: #666666;
-  --text3: #AAAAAA;
-  --green: #00C896;
-  --green-light: #E8F9F4;
-  --green-mid: rgba(0,200,150,0.15);
-  --blue: #0064FF;
-  --danger: #FF4040;
-  --warn: #FF9900;
-  --radius: 16px;
-  --radius-sm: 10px;
-  --shadow: 0 2px 12px rgba(0,0,0,0.06);
-}
-
-html { height: 100%; }
-body {
-  height: 100%;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 15px;
-  -webkit-font-smoothing: antialiased;
-  overflow: hidden;
-}
-
-/* ── SCREENS ── */
-.screen { height: 100vh; overflow: hidden; }
-
-/* ── ONBOARDING ── */
-#onboardingScreen {
-  display: flex;
-  flex-direction: column;
-  background: var(--white);
-  height: 100vh;
-}
-
-#onboardingSlide {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  padding: 40px 32px 24px;
-  text-align: center;
-}
-
-.ob-emoji {
-  font-size: 72px;
-  margin-bottom: 32px;
-  display: block;
-  line-height: 1;
-}
-
-.ob-title {
-  font-size: 28px;
-  font-weight: 800;
-  line-height: 1.3;
-  color: var(--text);
-  margin-bottom: 16px;
-  letter-spacing: -0.5px;
-}
-
-.ob-desc {
-  font-size: 15px;
-  color: var(--text2);
-  line-height: 1.7;
-  margin-bottom: 48px;
-}
-
-.ob-dots {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  margin-bottom: 32px;
-}
-
-.ob-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--border2);
-  transition: all 0.3s;
-}
-
-.ob-dot.active {
-  width: 24px;
-  border-radius: 4px;
-  background: var(--green);
-}
-
-.ob-bottom {
-  padding: 0 24px 40px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-#obNextBtn {
-  width: 100%;
-  background: var(--green);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius);
-  padding: 16px;
-  font-size: 16px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-#obSkip {
-  background: none;
-  border: none;
-  color: var(--text3);
-  font-size: 14px;
-  font-family: inherit;
-  cursor: pointer;
-  padding: 8px;
-}
-
-/* ── AUTH PANEL ── */
-#authPanel {
-  display: none;
-  height: 100vh;
-  overflow-y: auto;
-  padding: 48px 24px 40px;
-  background: var(--white);
-}
-
-.auth-top {
-  text-align: center;
-  margin-bottom: 36px;
-}
-
-.auth-logo {
-  font-size: 48px;
-  display: block;
-  margin-bottom: 8px;
-}
-
-.auth-brand {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--green);
-  letter-spacing: -0.5px;
-}
-
-.auth-sub {
-  font-size: 13px;
-  color: var(--text3);
-  margin-top: 4px;
-}
-
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.auth-error {
-  background: #FFF0F0;
-  color: var(--danger);
-  font-size: 13px;
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  margin-bottom: 12px;
-  border: 1px solid #FFD0D0;
-}
-
-.back-btn {
-  background: none;
-  border: none;
-  color: var(--green);
-  font-size: 14px;
-  font-family: inherit;
-  cursor: pointer;
-  padding: 0;
-  display: block;
-  text-align: left;
-  margin-bottom: 8px;
-}
-
-/* ── APP ── */
-#appScreen {
-  display: none;
-  flex-direction: column;
-  height: 100vh;
-  background: var(--bg);
-}
-
-/* ── TOP NAV ── */
-.top-nav {
-  background: var(--white);
-  border-bottom: 1px solid var(--border);
-  padding: 0 16px;
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.top-nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 0 8px;
-}
-
-.brand-icon { font-size: 18px; }
-.brand-name {
-  font-size: 17px;
-  font-weight: 800;
-  color: var(--green);
-  letter-spacing: -0.3px;
-}
-
-.top-tabs {
-  display: flex;
-  gap: 0;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-.top-tabs::-webkit-scrollbar { display: none; }
-
-.top-tab {
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  border-bottom: 2.5px solid transparent;
-  color: var(--text3);
-  font-size: 14px;
-  font-weight: 500;
-  font-family: inherit;
-  padding: 10px 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.top-tab.active {
-  color: var(--green);
-  border-bottom-color: var(--green);
-  font-weight: 700;
-}
-
-/* ── MAIN CONTENT ── */
-#mainContent {
-  flex: 1;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 20px 16px 32px;
-}
-
-/* ── PAGE HERO ── */
-.page-hero { margin-bottom: 20px; }
-.hero-eyebrow {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--green);
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 4px;
-}
-.hero-title {
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--text);
-  line-height: 1.25;
-  letter-spacing: -0.5px;
-}
-
-/* ── TOSS CARDS ── */
-.toss-card {
-  background: var(--white);
-  border-radius: var(--radius);
-  padding: 18px 16px;
-  margin-bottom: 12px;
-  box-shadow: var(--shadow);
-}
-
-/* ── FORMS ── */
-.form-group { margin-bottom: 16px; }
-.form-group:last-of-type { margin-bottom: 0; }
-.form-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text2);
-  margin-bottom: 6px;
-}
-
-.toss-input {
-  width: 100%;
-  background: var(--bg);
-  border: 1.5px solid var(--border2);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 15px;
-  padding: 13px 14px;
-  transition: border-color 0.2s;
-  outline: none;
-  -webkit-appearance: none;
-}
-.toss-input:focus { border-color: var(--green); background: #fff; }
-.toss-input::placeholder { color: var(--text3); }
-.toss-select { cursor: pointer; }
-
-.toss-textarea {
-  width: 100%;
-  background: var(--bg);
-  border: 1.5px solid var(--border2);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 15px;
-  padding: 13px 14px;
-  resize: none;
-  min-height: 110px;
-  line-height: 1.6;
-  outline: none;
-  transition: border-color 0.2s;
-}
-.toss-textarea:focus { border-color: var(--green); background: #fff; }
-.toss-textarea::placeholder { color: var(--text3); }
-.toss-textarea.sm { min-height: 80px; }
-
-/* ── BUTTONS ── */
-.toss-btn {
-  display: block;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 14px 20px;
-  font-size: 15px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
-  text-align: center;
-  text-decoration: none;
-}
-.toss-btn:active { transform: scale(0.98); opacity: 0.9; }
-
-.toss-btn.primary { background: var(--green); color: #fff; }
-.toss-btn.secondary { background: var(--green-light); color: var(--green); }
-.toss-btn.ghost { background: none; color: var(--text2); border: 1.5px solid var(--border2); }
-.toss-btn.danger { background: #FFF0F0; color: var(--danger); border: 1px solid #FFD0D0; }
-.toss-btn.full-width { width: 100%; }
-.toss-btn.compact { padding: 8px 14px; font-size: 13px; width: auto; display: inline-block; }
-.toss-btn.sm-btn { flex: 1; padding: 10px 8px; font-size: 13px; }
-
-.action-row {
-  display: flex;
-  gap: 8px;
-}
-.action-row .half { flex: 1; }
-
-/* ── INPUT MODE TABS ── */
-.input-mode-tabs {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 14px;
-}
-.mode-tab {
-  flex: 1;
-  background: var(--bg);
-  border: 1.5px solid var(--border2);
-  border-radius: var(--radius-sm);
-  color: var(--text2);
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
-  padding: 9px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.mode-tab.active {
-  background: var(--green-light);
-  border-color: var(--green);
-  color: var(--green);
-}
-
-/* ── IMAGE UPLOAD ── */
-.image-upload-area {
-  border: 2px dashed var(--border2);
-  border-radius: var(--radius-sm);
-  padding: 32px 16px;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color 0.2s;
-  background: var(--bg);
-}
-.image-upload-area:hover { border-color: var(--green); }
-.upload-icon { font-size: 36px; margin-bottom: 8px; }
-.upload-text { font-size: 14px; font-weight: 600; color: var(--text2); }
-.upload-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
-
-/* ── HINTS ── */
-.section-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text3);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  margin-bottom: 10px;
-}
-.hint-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.hint-card {
-  background: var(--white);
-  border-radius: var(--radius-sm);
-  padding: 14px 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  box-shadow: var(--shadow);
-  transition: transform 0.15s;
-}
-.hint-card:active { transform: scale(0.97); }
-.hint-emoji { font-size: 20px; }
-.hint-text { font-size: 13px; font-weight: 600; color: var(--text2); }
-
-/* ── LOADING ── */
-.loading-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-.loading-spinner {
-  width: 20px; height: 20px;
-  border: 2px solid var(--green-light);
-  border-top-color: var(--green);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.loading-title { font-size: 15px; font-weight: 700; color: var(--text); }
-.loading-steps { display: flex; flex-direction: column; gap: 8px; }
-.l-step {
-  font-size: 13px;
-  color: var(--text3);
-  padding: 8px 12px;
-  background: var(--bg);
-  border-radius: var(--radius-sm);
-  transition: all 0.3s;
-  border-left: 3px solid transparent;
-}
-.l-step.done {
-  color: var(--green);
-  background: var(--green-light);
-  border-left-color: var(--green);
-  font-weight: 600;
-}
-.loading-simple { font-size: 14px; color: var(--text2); padding: 24px; }
-.center-text { text-align: center; }
-
-/* ── RESULTS ── */
-.result-name-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-.result-name { font-size: 18px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
-.result-badge {
-  font-size: 11px;
-  font-weight: 700;
-  background: var(--green-light);
-  color: var(--green);
-  border-radius: 20px;
-  padding: 4px 10px;
-}
-
-.card-section-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--green);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
-}
-.card-body-text { font-size: 14px; color: var(--text2); line-height: 1.7; }
-
-.opp-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
-.opp-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--green);
-  flex-shrink: 0;
-  margin-top: 5px;
-}
-.opp-text { font-size: 14px; color: var(--text); line-height: 1.5; }
-
-/* MY IDEA */
-.my-idea-hint { font-size: 13px; color: var(--text2); margin-bottom: 10px; line-height: 1.5; }
-.expanded-card { border: 1.5px solid var(--green); }
-.first-step-tag { font-size: 13px; color: var(--green); font-weight: 600; margin-top: 8px; }
-
-/* IDEA CARDS */
-.idea-card-item { border-left: 3px solid var(--green-light); }
-.idea-num-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.idea-num {
-  width: 26px; height: 26px;
-  border-radius: 50%;
-  background: var(--green-light);
-  color: var(--green);
-  font-size: 13px;
-  font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.idea-title { font-size: 15px; font-weight: 700; color: var(--text); }
-.idea-desc { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 8px; }
-.idea-revenue-tag {
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--green);
-  background: var(--green-light);
-  border-radius: 6px;
-  padding: 4px 10px;
-}
-
-.reliability-strip {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text3);
-  background: #FFFBF0;
-  border: 1px solid #FFE4A0;
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  margin-bottom: 12px;
-}
-.reliability-strip span:first-child { font-weight: 700; color: var(--warn); }
-
-/* ── STATS ── */
-.stat-row { display: flex; gap: 8px; margin-bottom: 16px; }
-.stat-box {
-  flex: 1;
-  background: var(--white);
-  border-radius: var(--radius-sm);
-  padding: 14px 12px;
-  text-align: center;
-  box-shadow: var(--shadow);
-}
-.stat-box.wide { flex: 1.4; }
-.stat-num { font-size: 22px; font-weight: 800; color: var(--green); letter-spacing: -0.5px; }
-.stat-num.small { font-size: 13px; font-weight: 700; padding-top: 4px; line-height: 1.3; }
-.stat-label { font-size: 11px; color: var(--text3); margin-top: 2px; }
-
-/* ── IDEA LIST ── */
-.idea-list-card { cursor: pointer; transition: box-shadow 0.2s; }
-.idea-list-card:active { box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
-.idea-list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-.idea-list-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-.idea-list-opp { font-size: 13px; color: var(--text3); line-height: 1.4; }
-.idea-list-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
-.pill-green {
-  font-size: 11px; font-weight: 700;
-  background: var(--green-light); color: var(--green);
-  border-radius: 20px; padding: 3px 8px;
-}
-.idea-date { font-size: 11px; color: var(--text3); }
-.chevron { font-size: 18px; color: var(--text3); line-height: 1; }
-
-.idea-detail-panel { padding-top: 0; }
-.detail-divider { height: 1px; background: var(--border); margin: 14px 0; }
-.detail-row { margin-bottom: 10px; }
-.detail-label { font-size: 12px; font-weight: 700; color: var(--text3); margin-bottom: 3px; }
-.detail-val { font-size: 13px; color: var(--text2); line-height: 1.5; }
-.detail-val.highlight { color: var(--text); font-weight: 600; }
-.detail-actions { display: flex; gap: 8px; margin-top: 12px; }
-
-/* ── EVAL ── */
-.selected-item-bar { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
-.selected-label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; }
-.selected-name { font-size: 16px; font-weight: 700; color: var(--text); }
-
-.notice-card { display: flex; gap: 12px; align-items: flex-start; background: #FFFBF0; border: 1px solid #FFE4A0; }
-.notice-icon { font-size: 20px; flex-shrink: 0; }
-.notice-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
-.notice-desc { font-size: 13px; color: var(--text2); line-height: 1.5; }
-
-.eval-intro { text-align: center; }
-.eval-intro-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
-.eval-intro-items { display: flex; flex-direction: column; gap: 4px; }
-.eval-intro-item { font-size: 13px; color: var(--text2); }
-.eval-dot { margin: 0 6px; color: var(--text3); }
-
-.grade-hero {
-  border-radius: var(--radius);
-  padding: 28px 20px;
-  text-align: center;
-  margin-bottom: 12px;
-  border: 1.5px solid;
-}
-.grade-letter { font-size: 64px; font-weight: 800; line-height: 1; margin-bottom: 4px; letter-spacing: -2px; }
-.grade-score { font-size: 28px; font-weight: 800; line-height: 1; }
-.grade-max { font-size: 14px; color: var(--text3); margin-bottom: 14px; }
-.grade-summary { font-size: 14px; color: var(--text2); line-height: 1.6; }
-
-.score-card { padding: 14px 16px; }
-.score-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.score-label { font-size: 14px; font-weight: 600; color: var(--text); }
-.score-num { font-size: 18px; font-weight: 800; }
-.score-denom { font-size: 13px; font-weight: 500; color: var(--text3); }
-.score-bar-bg { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
-.score-bar-fill { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
-.score-reason { font-size: 13px; color: var(--text2); line-height: 1.5; }
-
-.insight-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; font-size: 14px; line-height: 1.5; }
-.insight-row.green { color: #006B4F; }
-.insight-row.yellow { color: #7A5100; }
-.insight-row.blue { color: #003D99; }
-.insight-icon { font-size: 16px; flex-shrink: 0; padding-top: 1px; }
-.insight-divider { height: 1px; background: var(--border); }
-
-/* ── DRAFT ── */
-.draft-card {}
-.draft-biz-name { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; margin-bottom: 4px; }
-.draft-oneliner { font-size: 14px; color: var(--green); font-style: italic; font-weight: 600; margin-bottom: 0; }
-.draft-divider { height: 1px; background: var(--border); margin: 16px 0; }
-.draft-grid { display: flex; flex-direction: column; gap: 10px; }
-.draft-item { display: flex; gap: 12px; align-items: flex-start; }
-.draft-key { font-size: 12px; font-weight: 700; color: var(--text3); min-width: 36px; flex-shrink: 0; margin-top: 1px; }
-.draft-val { font-size: 14px; color: var(--text2); line-height: 1.5; }
-.draft-plan-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
-.draft-plan-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
-.draft-plan-month { font-size: 12px; font-weight: 700; color: var(--green); min-width: 52px; flex-shrink: 0; margin-top: 2px; }
-.draft-plan-content { font-size: 13px; color: var(--text2); line-height: 1.5; }
-
-/* ── CASES ── */
-.case-card { border-left: 4px solid transparent; }
-.case-success { border-left-color: var(--green); }
-.case-fail { border-left-color: var(--danger); }
-.case-header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
-.case-name { font-size: 15px; font-weight: 700; }
-.case-pills { display: flex; gap: 4px; flex-shrink: 0; flex-wrap: wrap; }
-.pill-country { font-size: 11px; background: var(--bg); color: var(--text2); border-radius: 20px; padding: 3px 8px; border: 1px solid var(--border2); }
-.pill-red { font-size: 11px; font-weight: 700; background: #FFF0F0; color: var(--danger); border-radius: 20px; padding: 3px 8px; }
-.case-detail-row { font-size: 13px; color: var(--text2); margin-bottom: 6px; line-height: 1.5; }
-.case-key { font-weight: 700; color: var(--text); margin-right: 6px; }
-.case-insight {
-  font-size: 13px; color: var(--green); font-weight: 600;
-  background: var(--green-light); border-radius: var(--radius-sm);
-  padding: 8px 12px; margin-top: 10px; line-height: 1.5;
-}
-
-/* ── SETTINGS ── */
-.user-profile-card { display: flex; align-items: center; gap: 14px; }
-.user-avatar-circle {
-  width: 48px; height: 48px;
-  border-radius: 50%;
-  background: var(--green);
-  color: #fff;
-  font-size: 20px;
-  font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.user-info { flex: 1; min-width: 0; }
-.user-name { font-size: 16px; font-weight: 700; color: var(--text); }
-.user-email { font-size: 13px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.logout-btn {
-  background: var(--bg);
-  border: 1.5px solid var(--border2);
-  border-radius: var(--radius-sm);
-  padding: 8px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
-  color: var(--text2);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.profile-notice-text { font-size: 13px; color: var(--text3); line-height: 1.5; }
-.danger-notice { font-size: 12px; color: var(--text3); text-align: center; margin-top: 8px; }
-
-/* ── EMPTY STATE ── */
-.empty-state { text-align: center; padding: 60px 24px; }
-.empty-icon { font-size: 52px; margin-bottom: 16px; }
-.empty-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
-.empty-desc { font-size: 14px; color: var(--text3); line-height: 1.6; }
-
-/* ── ERROR STATE ── */
-.error-state { text-align: center; }
-.error-icon { font-size: 32px; margin-bottom: 8px; }
-.error-msg { font-size: 14px; font-weight: 600; color: var(--danger); }
-.error-detail { font-size: 12px; color: var(--text3); margin-top: 4px; }
-
-/* ── TOAST ── */
-.toast {
-  position: fixed; bottom: 24px; left: 50%;
-  transform: translateX(-50%) translateY(12px);
-  background: var(--text);
-  color: #fff;
-  padding: 11px 20px;
-  border-radius: 24px;
-  font-size: 14px;
-  font-weight: 600;
-  z-index: 9999;
-  opacity: 0;
-  transition: all 0.25s;
-  white-space: nowrap;
-  max-width: 90vw;
-  pointer-events: none;
-}
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-.toast.toast-error { background: var(--danger); }
-
-/* ── UTILS ── */
-.mt-8 { margin-top: 8px; }
-.mt-12 { margin-top: 12px; }
-.mt-16 { margin-top: 16px; }
-.mt-24 { margin-top: 24px; }
-
-/* ── RESPONSIVE ── */
-@media (min-width: 480px) {
-  #onboardingScreen, #onboardingScreen #authPanel, #appScreen {
-    max-width: 480px;
-    margin: 0 auto;
-    box-shadow: 0 0 40px rgba(0,0,0,0.12);
-  }
-  body { background: #F0F0F0; }
-}
-
-@media (orientation: landscape) and (max-height: 500px) {
-  #onboardingSlide { padding: 20px 32px 12px; }
-  .ob-emoji { font-size: 48px; margin-bottom: 16px; }
-  .ob-title { font-size: 22px; margin-bottom: 8px; }
-  .ob-desc { margin-bottom: 20px; }
-  .page-hero { margin-bottom: 12px; }
-  .hero-title { font-size: 22px; }
-  .toss-card { padding: 14px; }
-}
-</style>
-</head>
-<body>
-
-<!-- ONBOARDING -->
-<div id="onboardingScreen" class="screen">
-  <div id="onboardingSlide">
-    <span id="obEmoji" class="ob-emoji"></span>
-    <h1 id="obTitle" class="ob-title"></h1>
-    <p id="obDesc" class="ob-desc"></p>
-    <div class="ob-dots">
-      <div class="ob-dot"></div>
-      <div class="ob-dot"></div>
-      <div class="ob-dot"></div>
-    </div>
-  </div>
-  <div class="ob-bottom">
-    <button id="obNextBtn" onclick="nextOnboarding()"></button>
-    <button id="obSkip" onclick="skipOnboarding()">건너뛰기</button>
-  </div>
-  <div id="authPanel"></div>
-</div>
-
-<!-- APP -->
-<div id="appScreen" class="screen">
-  <header class="top-nav">
-    <div class="top-nav-brand">
-      <span class="brand-icon">🔍</span>
-      <span class="brand-name">MoneyLens</span>
-    </div>
-    <nav class="top-tabs">
-      <button class="top-tab active" data-tab="lens" onclick="renderPage('lens')">렌즈</button>
-      <button class="top-tab" data-tab="ideas" onclick="renderPage('ideas')">아이디어함</button>
-      <button class="top-tab" data-tab="eval" onclick="renderPage('eval')">평가실</button>
-      <button class="top-tab" data-tab="cases" onclick="renderPage('cases')">사례</button>
-      <button class="top-tab" data-tab="settings" onclick="renderPage('settings')">설정</button>
-    </nav>
-  </header>
-  <div id="mainContent"></div>
-</div>
-
 </body>
 </html>
